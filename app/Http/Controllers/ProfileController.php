@@ -26,7 +26,7 @@ class ProfileController extends Controller
             ),
         ]);
 
-        return back()->with('success', 'Profil berhasil diperbarui.');
+        return back()->with('success', 'Profile updated successfully.');
     }
 
     public function destroy(Request $request)

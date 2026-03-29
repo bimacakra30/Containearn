@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     if (!auth()->check()) {
@@ -27,6 +28,11 @@ Route::middleware('auth')->group(function () {
             abort_unless(in_array(auth()->user()->role, ['superadmin', 'dosen']), 403);
             return view('admin.profile');
         })->name('admin.profile');
+
+        Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
+        Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
+        Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
 
     });
 

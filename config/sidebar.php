@@ -13,6 +13,11 @@ return [
             'route' => 'admin.profile',
             'active' => ['admin.profile']
         ],
+        [
+            'label' => 'Users',
+            'route' => 'admin.users.index',
+            'active' => ['admin.users.*']
+        ],
     ],
 
     'dosen' => [
@@ -25,6 +30,11 @@ return [
             'label' => 'Profile',
             'route' => 'admin.profile',
             'active' => ['admin.profile']
+        ],
+        [
+            'label' => 'Users',
+            'route' => 'admin.users.index',
+            'active' => ['admin.users.*']
         ],
     ],
 
