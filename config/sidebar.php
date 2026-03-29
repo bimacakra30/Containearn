@@ -36,6 +36,11 @@ return [
             'route' => 'admin.users.index',
             'active' => ['admin.users.*']
         ],
+        [
+            'label' => 'Practicum Contents',
+            'route' => 'admin.contents.index',
+            'active' => ['admin.contents.*']
+        ],
     ],
 
     'mahasiswa' => [
