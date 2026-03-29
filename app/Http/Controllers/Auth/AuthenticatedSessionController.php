@@ -31,10 +31,10 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
 
         if (in_array($user->role, ['superadmin', 'dosen'])) {
-            return redirect('/admin'); // FIX
+            return redirect('/admin');
         }
 
-        return redirect('/'); // FIX
+        return redirect('/');
     }
 
     /**
