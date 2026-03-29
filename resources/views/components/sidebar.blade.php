@@ -1,6 +1,6 @@
 @php
-    $role = auth()->user()->role;
-    $menus = config("sidebar.$role") ?? [];
+$role = auth()->user()->role;
+$menus = config("sidebar.$role") ?? [];
 @endphp
 
 <aside class="glass rounded-2xl p-5 sticky top-6 h-fit fade-in">
@@ -12,23 +12,23 @@
     <nav class="mt-6 space-y-2 text-sm">
 
         @foreach($menus as $menu)
-            @php
-                $isActive = false;
-                foreach ($menu['active'] as $activeRoute) {
-                    if (request()->routeIs($activeRoute)) {
-                        $isActive = true;
-                        break;
-                    }
-                }
-            @endphp
+        @php
+        $isActive = false;
+        foreach ($menu['active'] as $activeRoute) {
+        if (request()->routeIs($activeRoute)) {
+        $isActive = true;
+        break;
+        }
+        }
+        @endphp
 
-            <a href="{{ route($menu['route']) }}"
-                class="flex items-center gap-2 rounded-xl border px-3 py-2 transition
-                {{ $isActive
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold'
-                    : 'border-slate-200 text-slate-700 hover:border-emerald-200 hover:bg-emerald-50' }}">
-                {{ $menu['label'] }}
-            </a>
+        <a href="{{ route($menu['route']) }}"
+            class="flex items-center gap-2 rounded-xl border px-3 py-2 transition
+            {{ $isActive
+            ? 'border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold'
+            : 'border-slate-200 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700' }}">
+            {{ $menu['label'] }}
+        </a>
         @endforeach
 
         <form method="POST" action="{{ route('logout') }}">

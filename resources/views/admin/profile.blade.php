@@ -9,7 +9,7 @@
 
                 <main class="space-y-6 fade-in">
                     <header>
-                        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600">My Account</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">My Account</p>
                         <h1 class="font-display text-3xl sm:text-4xl text-slate-900">Profile Details</h1>
                     </header>
 
@@ -17,7 +17,7 @@
 
                     <div class="glass rounded-2xl p-6 space-y-4">
                         <div class="flex items-center gap-4 pb-4 border-b border-slate-100">
-                            <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-display text-xl font-bold">
+                            <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-display text-xl font-bold">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </div>
                             <div>
@@ -59,7 +59,7 @@
                                 <div>
                                     <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Name</label>
                                     <input type="text" name="name" value="{{ old('name', auth()->user()->name) }}"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
                                     @error('name')
                                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                                     @enderror
@@ -67,7 +67,7 @@
                                 <div>
                                     <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Identity ID</label>
                                     <input type="text" name="identity_id" value="{{ old('identity_id', auth()->user()->identity_id) }}"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
                                     @error('identity_id')
                                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                                     @enderror
@@ -75,7 +75,7 @@
                                 <div>
                                     <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Email</label>
                                     <input type="email" name="email" value="{{ old('email', auth()->user()->email) }}"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
                                     @error('email')
                                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                                     @enderror
@@ -85,7 +85,7 @@
                                         New Password <span class="normal-case text-slate-400">(optional)</span>
                                     </label>
                                     <input type="password" name="password"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
                                     @error('password')
                                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                                     @enderror
@@ -93,12 +93,12 @@
                                 <div>
                                     <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1.5">Confirm Password</label>
                                     <input type="password" name="password_confirmation"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition">
+                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
                                 </div>
                             </div>
                             <div class="pt-2">
                                 <button type="submit"
-                                    class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-sm font-semibold transition">
+                                    class="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-sm font-semibold transition">
                                     Save Changes
                                 </button>
                             </div>

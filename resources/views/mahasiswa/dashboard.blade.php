@@ -7,7 +7,7 @@
             <x-sidebar />
             <main class="space-y-6 fade-in">
                 <header>
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600">Dashboard</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Dashboard</p>
                     <h1 class="font-display text-3xl sm:text-4xl text-slate-900">
                         Welcome!, {{ auth()->user()->name }}
                     </h1>

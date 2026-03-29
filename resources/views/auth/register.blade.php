@@ -5,7 +5,7 @@
 
     <div class="pointer-events-none fixed inset-0 overflow-hidden -z-10" aria-hidden="true">
         <div class="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full bg-blue-100 opacity-60 blur-3xl"></div>
-        <div class="absolute -top-20 right-0 w-[400px] h-[400px] rounded-full bg-amber-100 opacity-50 blur-3xl"></div>
+        <div class="absolute -top-20 right-0 w-[400px] h-[400px] rounded-full bg-indigo-100 opacity-50 blur-3xl"></div>
         <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-indigo-50 opacity-40 blur-3xl"></div>
     </div>
 

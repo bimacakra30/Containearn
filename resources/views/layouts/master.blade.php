@@ -27,9 +27,10 @@
         body {
             font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
             background:
-                radial-gradient(900px 500px at 8% -10%, #dbeafe 0, transparent 60%),
-                radial-gradient(700px 420px at 100% 10%, #fef3c7 0, transparent 55%),
-                #f8fafc;
+                radial-gradient(900px 500px at 8% -10%, #bfdbfe 0, transparent 60%),
+                radial-gradient(700px 420px at 100% 10%, #c7d2fe 0, transparent 55%),
+                radial-gradient(600px 400px at 50% 110%, #dbeafe 0, transparent 60%),
+                #f0f6ff;
         }
 
         .glass {
