@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="id">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +22,7 @@
             }
         }
     </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         body {
             font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -29,21 +31,39 @@
                 radial-gradient(700px 420px at 100% 10%, #fef3c7 0, transparent 55%),
                 #f8fafc;
         }
+
         .glass {
-            background: rgba(255,255,255,0.92);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid #e2e8f0;
-            box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
             backdrop-filter: blur(8px);
         }
-        .fade-in { animation: fade-in 0.6s ease-out both; }
+
+        .fade-in {
+            animation: fade-in 0.6s ease-out both;
+        }
+
         @keyframes fade-in {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 </head>
+
 <body>
     @yield('content')
     @vite('resources/js/app.js')
 </body>
+
 </html>
