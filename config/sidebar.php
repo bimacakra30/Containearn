@@ -14,7 +14,7 @@ return [
             'active' => ['admin.profile']
         ],
         [
-            'label' => 'Users',
+            'label' => 'Users Management',
             'route' => 'admin.users.index',
             'active' => ['admin.users.*']
         ],
@@ -32,7 +32,7 @@ return [
             'active' => ['admin.profile']
         ],
         [
-            'label' => 'Users',
+            'label' => 'Users Management',
             'route' => 'admin.users.index',
             'active' => ['admin.users.*']
         ],
