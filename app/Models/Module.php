@@ -28,4 +28,9 @@ class Module extends Model
     {
         return $this->hasMany(Question::class, 'id_module', 'id_module');
     }
+
+    public function progresses(): HasMany
+    {
+        return $this->hasMany(ModuleProgress::class, 'module_id', 'id_module');
+    }
 }
