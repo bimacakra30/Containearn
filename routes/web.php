@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PracticumContentController;
+use App\Http\Controllers\StudentPracticumController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,12 +13,19 @@ Route::get('/', function () {
 
     return match (auth()->user()->role) {
         'superadmin', 'dosen' => redirect()->route('admin.dashboard'),
-        'mahasiswa'           => redirect()->route('mahasiswa.dashboard'),
+        'mahasiswa'           => view('mahasiswa.dashboard'),
         default               => abort(403)
     };
-});
+})->name('mahasiswa.dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::redirect('/mahasiswa', '/');
+    Route::redirect('/mahasiswa/content', '/content');
+    Route::redirect('/mahasiswa/profile', '/profile');
+    Route::get('/mahasiswa/content/{module}', function ($module) {
+        return redirect()->route('mahasiswa.content.show', $module);
+    })->whereNumber('module');
+
     Route::prefix('admin')->group(function () {
 
         Route::get('/', function () {
@@ -38,19 +46,27 @@ Route::middleware('auth')->group(function () {
 
     });
 
-    Route::prefix('mahasiswa')->group(function () {
+    Route::get('/content', [StudentPracticumController::class, 'index'])->name('mahasiswa.content.index');
+    Route::post('/content/{module}/start', [StudentPracticumController::class, 'start'])
+        ->whereNumber('module')
+        ->name('mahasiswa.content.start');
+    Route::get('/content/{module}', [StudentPracticumController::class, 'show'])
+        ->whereNumber('module')
+        ->name('mahasiswa.content.show');
+    Route::post('/content/{module}/run', [StudentPracticumController::class, 'run'])
+        ->whereNumber('module')
+        ->name('mahasiswa.content.run');
+    Route::post('/content/{module}/end', [StudentPracticumController::class, 'end'])
+        ->whereNumber('module')
+        ->name('mahasiswa.content.end');
+    Route::post('/content/{module}/next', [StudentPracticumController::class, 'next'])
+        ->whereNumber('module')
+        ->name('mahasiswa.content.next');
 
-        Route::get('/', function () {
-            abort_unless(auth()->user()->role === 'mahasiswa', 403);
-            return view('mahasiswa.dashboard');
-        })->name('mahasiswa.dashboard');
-
-        Route::get('/profile', function () {
-            abort_unless(auth()->user()->role === 'mahasiswa', 403);
-            return view('mahasiswa.profile');
-        })->name('mahasiswa.profile');
-
-    });
+    Route::get('/profile', function () {
+        abort_unless(auth()->user()->role === 'mahasiswa', 403);
+        return view('mahasiswa.profile');
+    })->name('mahasiswa.profile');
     
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
