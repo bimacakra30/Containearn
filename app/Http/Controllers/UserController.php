@@ -24,11 +24,6 @@ class UserController extends Controller
         return view('admin.users', [
             'users' => $users,
             'perPage' => $perPage,
-            'roleCounts' => [
-                'superadmin' => User::where('role', 'superadmin')->count(),
-                'dosen' => User::where('role', 'dosen')->count(),
-                'mahasiswa' => User::where('role', 'mahasiswa')->count(),
-            ],
         ]);
     }
 

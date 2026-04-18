@@ -27,25 +27,7 @@
                     </div>
                     @endif
                 </div>
-
-                <section class="glass rounded-[1.75rem] p-4 sm:p-5">
-                    <form method="GET" action="{{ route('mahasiswa.content.index') }}" class="flex flex-col gap-3 sm:flex-row">
-                        <label for="search" class="sr-only">Search practicum content</label>
-                        <input
-                            id="search"
-                            name="search"
-                            type="text"
-                            value="{{ $search }}"
-                            placeholder="Search content..."
-                            class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                        <button
-                            type="submit"
-                            class="rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
-                            Search
-                        </button>
-                    </form>
-                </section>
-
+                
                 @forelse ($courses as $course)
                 @php
                 $courseLabel = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python') ? 'Python Lab' : 'Interactive Lab';
