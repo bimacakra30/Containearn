@@ -21,9 +21,7 @@ class StudentPracticumController extends Controller
 {
     public function index(Request $request): View
     {
-        $actor  = $this->authorizeStudentAccess($request);
-        $search = trim((string) $request->string('search'));
-        $needle = Str::lower($search);
+        $user = $request->user();
 
         $courses = Course::query()
             ->with(['modules' => fn ($q) => $q->withCount('questions')->orderBy('id_module')])
@@ -31,58 +29,40 @@ class StudentPracticumController extends Controller
             ->get();
 
         $progresses = ModuleProgress::query()
-            ->where('user_id', $actor->getKey())
+            ->where('user_id', $user->getKey())
             ->get()
             ->keyBy('module_id');
 
         $courses = $courses
             ->map(fn (Course $c) => $this->decorateCourseModules($c, $progresses))
-            ->map(function (Course $course) use ($needle) {
-                if ($needle === '') return $course;
-
-                if (Str::contains(Str::lower($course->course_title), $needle)) return $course;
-
-                $course->setRelation('modules', $course->modules
-                    ->filter(fn (Module $m) =>
-                        Str::contains(Str::lower($m->title), $needle) ||
-                        Str::contains(Str::lower($m->description), $needle)
-                    )->values()
-                );
-
-                return $course;
-            })
-            ->filter(fn (Course $c) => $c->modules->isNotEmpty())
             ->values();
 
         return view('mahasiswa.practicum.index', [
-            'courses'      => $courses,
-            'search'       => $search,
-            'totalModules' => $courses->sum(fn (Course $c) => $c->modules->count()),
+            'courses'      => $courses
         ]);
     }
 
     public function start(Request $request, Module $module, DockerService $docker): RedirectResponse
     {
-        $actor = $this->authorizeStudentAccess($request);
+        $user = $request->user();
         $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
 
         abort_if($module->questions->isEmpty(), 404, 'Module does not have any questions yet.');
 
-        $progress = $this->findProgress($actor, $module);
+        $progress = $this->findProgress($user, $module);
 
-        if ($progress === null && !$this->isModuleUnlocked($actor, $module)) {
+        if ($progress === null && !$this->isModuleUnlocked($user, $module)) {
             return redirect()->route('mahasiswa.content.index')
                 ->with('error', 'Complete the previous module first.');
         }
 
         $progress ??= ModuleProgress::query()->create([
-            'user_id'                => $actor->getKey(),
+            'user_id'                => $user->getKey(),
             'module_id'              => $module->getKey(),
             'status'                 => 'in_progress',
             'current_question_index' => 0,
         ]);
 
-        // Reuse existing valid session
         if ($progress->status !== 'completed') {
             $existing = $request->session()->get('practicum.runtime.' . $module->getKey());
             $existing = is_array($existing) ? $existing : null;
@@ -97,7 +77,7 @@ class StudentPracticumController extends Controller
 
         if ($progress->status !== 'completed') {
             try {
-                $state = $this->prepareRuntimeState($actor, $module, $docker);
+                $state = $this->prepareRuntimeState($user, $module, $docker);
                 $request->session()->put('practicum.runtime.' . $module->getKey(), $state);
             } catch (Throwable $e) {
                 return redirect()->route('mahasiswa.content.index')
@@ -111,13 +91,13 @@ class StudentPracticumController extends Controller
 
     public function show(Request $request, Module $module, DockerService $docker): View|RedirectResponse
     {
-        $actor = $this->authorizeStudentAccess($request);
+        $user = $request->user();
         $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
 
-        $progress = $this->findProgress($actor, $module);
+        $progress = $this->findProgress($user, $module);
 
         if ($progress === null) {
-            if (!$this->isModuleUnlocked($actor, $module)) {
+            if (!$this->isModuleUnlocked($user, $module)) {
                 return redirect()->route('mahasiswa.content.index')
                     ->with('error', 'Complete the previous module first.');
             }
@@ -135,7 +115,7 @@ class StudentPracticumController extends Controller
             if ($runtimeState === null) {
                 try {
                     $this->resetAllRuntimeSessions($request, $docker);
-                    $runtimeState = $this->prepareRuntimeState($actor, $module, $docker);
+                    $runtimeState = $this->prepareRuntimeState($user, $module, $docker);
                     $request->session()->put($sessionKey, $runtimeState);
                 } catch (Throwable $e) {
                     return redirect()->route('mahasiswa.content.index')
@@ -151,7 +131,7 @@ class StudentPracticumController extends Controller
             }
         }
 
-        [$state, $questionProgresses] = $this->buildModuleState($actor, $module, $progress, $runtimeState);
+        [$state, $questionProgresses] = $this->buildModuleState($user, $module, $progress, $runtimeState);
 
         $questions             = $module->questions->values();
         $rawIndex              = (int) ($progress->current_question_index ?? 0);
@@ -183,7 +163,7 @@ class StudentPracticumController extends Controller
 
     public function run(Request $request, Module $module, DockerService $docker): RedirectResponse
     {
-        $actor   = $this->authorizeStudentAccess($request);
+        $user = $request->user();
         $payload = $request->validate([
             'code'                    => ['required', 'string', 'max:20000'],
             'selected_question_index' => ['nullable', 'integer', 'min:0'],
@@ -191,7 +171,7 @@ class StudentPracticumController extends Controller
         ]);
 
         $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
-        $progress = $this->findProgress($actor, $module);
+        $progress = $this->findProgress($user, $module);
 
         if ($progress === null) {
             return redirect()->route('mahasiswa.content.index')
@@ -216,9 +196,8 @@ class StudentPracticumController extends Controller
         }
 
         $sessionKey   = 'practicum.runtime.' . $module->getKey();
-        $runtime      = $this->resolveRuntime($module);
         $runtimeState = $this->normalizeRuntimeState(
-            $request->session()->get($sessionKey) ?? ['runtime' => $runtime],
+            $request->session()->get($sessionKey) ?? [],
             $module
         );
         $request->session()->put($sessionKey, $runtimeState);
@@ -228,7 +207,7 @@ class StudentPracticumController extends Controller
         }
 
         try {
-            $execution = $this->executeSubmission($runtime, $module, $currentQuestion, $payload['code'], $runtimeState, $docker, $actor);
+            $execution = $this->executeSubmission($module, $currentQuestion, $payload['code'], $runtimeState, $docker, $user);
         } catch (Throwable $e) {
             $execution = ['exit_code' => 1, 'stdout' => '', 'stderr' => $e->getMessage(), 'is_correct' => false];
         }
@@ -236,12 +215,12 @@ class StudentPracticumController extends Controller
         $request->session()->put($sessionKey, $runtimeState);
 
         $existing = QuestionProgress::query()
-            ->where('user_id', $actor->getKey())
+            ->where('user_id', $user->getKey())
             ->where('question_id', $currentQuestion->getKey())
             ->first();
 
         QuestionProgress::query()->updateOrCreate(
-            ['user_id' => $actor->getKey(), 'question_id' => $currentQuestion->getKey()],
+            ['user_id' => $user->getKey(), 'question_id' => $currentQuestion->getKey()],
             [
                 'submitted_code' => $payload['code'],
                 'stdout'         => $execution['stdout'],
@@ -259,9 +238,9 @@ class StudentPracticumController extends Controller
 
     public function end(Request $request, Module $module, DockerService $docker): RedirectResponse
     {
-        $this->authorizeStudentAccess($request);
+        $user = $request->user();
 
-        if ($this->findProgress($request->user(), $module) === null) {
+        if ($this->findProgress($user, $module) === null) {
             return redirect()->route('mahasiswa.content.index')->with('error', 'Session not found.');
         }
 
@@ -272,10 +251,10 @@ class StudentPracticumController extends Controller
 
     public function next(Request $request, Module $module, DockerService $docker): RedirectResponse
     {
-        $actor = $this->authorizeStudentAccess($request);
+        $user = $request->user();
         $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
 
-        $progress = $this->findProgress($actor, $module);
+        $progress = $this->findProgress($user, $module);
 
         if ($progress === null) {
             return redirect()->route('mahasiswa.content.index')
@@ -308,7 +287,7 @@ class StudentPracticumController extends Controller
         }
 
         $answer = QuestionProgress::query()
-            ->where('user_id', $actor->getKey())
+            ->where('user_id', $user->getKey())
             ->where('question_id', $currentQuestion->getKey())
             ->first();
 
@@ -329,8 +308,6 @@ class StudentPracticumController extends Controller
         return redirect()->route('mahasiswa.content.show', $module)
             ->with('success', $nextIndex >= $questions->count() ? 'Module completed.' : 'Moved to the next question.');
     }
-
-    // ─── Private Helpers ──────────────────────────────────────────────────────
 
     private function decorateCourseModules(Course $course, Collection $progresses): Course
     {
@@ -390,7 +367,6 @@ class StudentPracticumController extends Controller
         ], $questionProgresses];
     }
 
-    /** Unified helper — merges the two former resolve* methods */
     private function resolveSelectedQuestionIndex(int $requested, ModuleProgress $progress, Collection $questions): int
     {
         if ($questions->isEmpty()) return 0;
@@ -403,10 +379,12 @@ class StudentPracticumController extends Controller
     }
 
     private function executeSubmission(
-        string $runtime, Module $module, Question $question,
+        Module $module, Question $question,
         string $code, array &$runtimeState,
         DockerService $docker, User $user,
     ): array {
+        $runtime = $this->resolveRuntime($module);
+
         if ($runtime === 'python') {
             if (empty($runtimeState['container_name'])) {
                 $runtimeState = $this->prepareRuntimeState($user, $module, $docker);
@@ -424,18 +402,12 @@ class StudentPracticumController extends Controller
             ];
         }
 
-        $isSql          = $runtime === 'sql';
-        $studentAnswer  = $isSql ? $this->normalizeSql($code)            : $this->normalizeOutput($code);
-        $expectedAnswer = $isSql ? $this->normalizeSql($question->output) : $this->normalizeOutput($question->output);
-
-        return ['exit_code' => 0, 'stdout' => $code, 'stderr' => '', 'is_correct' => $studentAnswer === $expectedAnswer];
-    }
-
-    private function authorizeStudentAccess(Request $request): User
-    {
-        $actor = $request->user();
-        abort_unless($actor?->isMahasiswa(), 403, 'You do not have access to this page.');
-        return $actor;
+        return [
+            'exit_code' => 0,
+            'stdout' => $code,
+            'stderr' => '',
+            'is_correct' => $this->normalizeOutput($code) === $this->normalizeOutput($question->output),
+        ];
     }
 
     private function findProgress(User $user, Module $module): ?ModuleProgress
@@ -466,9 +438,8 @@ class StudentPracticumController extends Controller
         $image = Str::lower((string) optional($module->course)->docker_image);
 
         return match (true) {
-            Str::contains($image, 'python')                                          => 'python',
-            Str::contains($image, 'mysql'), Str::contains($image, 'mariadb')        => 'sql',
-            default                                                                   => 'text',
+            Str::contains($image, 'python') => 'python',
+            default => 'text',
         };
     }
 
@@ -534,11 +505,6 @@ class StudentPracticumController extends Controller
     private function normalizeOutput(string $value): string
     {
         return preg_replace("/\r\n?/", "\n", trim($value)) ?? trim($value);
-    }
-
-    private function normalizeSql(string $value): string
-    {
-        return rtrim((string) Str::of($value)->replaceMatches('/\s+/', ' ')->trim()->lower(), ';');
     }
 
     private function resetAllRuntimeSessions(Request $request, DockerService $docker): void

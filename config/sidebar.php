@@ -56,14 +56,14 @@ return [
             'active' => ['mahasiswa.dashboard']
         ],
         [
-            'label' => 'Practicum Content',
-            'route' => 'mahasiswa.content.index',
-            'active' => ['mahasiswa.content.*']
-        ],
-        [
             'label' => 'Profile',
             'route' => 'mahasiswa.profile',
             'active' => ['mahasiswa.profile']
+        ],
+        [
+            'label' => 'Practicum Content',
+            'route' => 'mahasiswa.content.index',
+            'active' => ['mahasiswa.content.*']
         ],
     ],
 
