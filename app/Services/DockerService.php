@@ -20,14 +20,23 @@ class DockerService
         $image = $image ?: config('praktikum.default_python_image', 'python:3.12-slim');
 
         $p = new Process([
-            $this->bin, 'run', '-d', '--rm',
-            '--name',       $containerName,
-            '--network',    'none',
-            '--memory',     (string) config('praktikum.container_memory', '256m'),
-            '--cpus',       (string) config('praktikum.container_cpus', '0.5'),
-            '--pids-limit', '128',
+            $this->bin,
+            'run',
+            '-d',
+            '--rm',
+            '--name',
+            $containerName,
+            '--network',
+            'none',
+            '--memory',
+            (string) config('praktikum.container_memory', '256m'),
+            '--cpus',
+            (string) config('praktikum.container_cpus', '0.5'),
+            '--pids-limit',
+            '128',
             $image,
-            'sleep', 'infinity',
+            'sleep',
+            'infinity',
         ]);
 
         $p->setTimeout(30);
@@ -56,8 +65,11 @@ class DockerService
     public function runPythonFile(string $containerName, string $pathInContainer): array
     {
         $p = new Process([
-            $this->bin, 'exec', $containerName,
-            'sh', '-lc',
+            $this->bin,
+            'exec',
+            $containerName,
+            'sh',
+            '-lc',
             "timeout {$this->execTimeout}s python -u " . escapeshellarg($pathInContainer),
         ]);
         $p->setTimeout($this->execTimeout + 2);
@@ -72,6 +84,29 @@ class DockerService
                 ? "Program exceeded time limit ({$this->execTimeout}s)."
                 : $p->getErrorOutput(),
         ];
+    }
+
+    public function listActiveContainers(): array
+    {
+        $p = new Process([$this->bin, 'ps', '--format', '{{json .}}']);
+        $p->setTimeout(10);
+        $p->run();
+
+        $lines = preg_split('/\r\n|\r|\n/', trim($p->getOutput())) ?: [];
+
+        return collect($lines)
+            ->filter(fn(string $line) => $line !== '')
+            ->map(function (string $line): array {
+                $container = json_decode($line, true);
+
+                return [
+                    'name' => (string) ($container['Names'] ?? '-'),
+                    'status' => (string) ($container['Status'] ?? '-'),
+                    'image' => (string) ($container['Image'] ?? '-'),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function destroyContainer(string $containerName): void

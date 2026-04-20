@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PracticumContentController;
 use App\Http\Controllers\StudentPracticumController;
@@ -19,6 +20,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'role:superadmin,dosen'])->prefix('admin')->group(function () {
     Route::get('/',        fn() => view('admin.dashboard'))->name('admin.dashboard');
     Route::get('/profile', fn() => view('admin.profile'))->name('admin.profile');
+    Route::get('/monitoring', [MonitoringController::class, 'index'])->name('admin.monitoring.index');
     Route::get('/contents', [PracticumContentController::class, 'index'])->name('admin.contents.index');
 
     Route::get('/users',           [UserController::class, 'index'])->name('admin.users.index');

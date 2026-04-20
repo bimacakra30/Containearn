@@ -41,6 +41,12 @@ return [
             'route' => 'admin.contents.index',
             'active' => ['admin.contents.*']
         ],
+
+        [
+            'label' => 'Monitoring',
+            'route' => 'admin.monitoring.index',
+            'active' => ['admin.monitoring.*']
+        ],
     ],
 
     'mahasiswa' => [
