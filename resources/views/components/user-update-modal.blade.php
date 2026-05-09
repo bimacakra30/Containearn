@@ -30,18 +30,18 @@
         x-transition:leave="ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-        class="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+        class="glass relative z-10 w-full max-w-lg p-6 shadow-2xl"
     >
         <div class="mb-5 flex items-start justify-between gap-4">
             <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Edit User</p>
+                <p class="eyebrow">Edit User</p>
                 <h3 class="font-display text-xl text-slate-900">Update account details</h3>
             </div>
 
             <button
                 type="button"
                 @click="{{ $show }} = false"
-                class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50">
+                class="btn-secondary px-3 py-2 text-xs">
                 Close
             </button>
         </div>
@@ -52,39 +52,39 @@
 
             <div class="grid gap-4 md:grid-cols-2">
                 <div>
-                    <label class="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Identity ID</label>
+                    <label class="form-label">Identity ID</label>
                     <input
                         type="text"
                         name="identity_id"
                         x-model="editUser.identity_id"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                        class="form-input">
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Name</label>
+                    <label class="form-label">Name</label>
                     <input
                         type="text"
                         name="name"
                         x-model="editUser.name"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                        class="form-input">
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Email</label>
+                    <label class="form-label">Email</label>
                     <input
                         type="email"
                         name="email"
                         x-model="editUser.email"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                        class="form-input">
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Role</label>
+                    <label class="form-label">Role</label>
                     <select
                         name="role"
                         x-model="editUser.role"
                         :disabled="editUser.id === {{ \Illuminate\Support\Js::from($currentUserId) }}"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                        class="form-input">
                         @foreach ($availableRoles as $role)
                             <option value="{{ $role }}">
                                 {{ $roleLabels[$role] ?? ucfirst($role) }}
@@ -100,19 +100,19 @@
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">New Password (Optional)</label>
+                    <label class="form-label">New Password (Optional)</label>
                     <input
                         type="password"
                         name="password"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                        class="form-input">
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Confirm Password</label>
+                    <label class="form-label">Confirm Password</label>
                     <input
                         type="password"
                         name="password_confirmation"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                        class="form-input">
                 </div>
             </div>
 
@@ -120,13 +120,13 @@
                 <button
                     type="button"
                     @click="{{ $show }} = false"
-                    class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
+                    class="btn-secondary px-5 py-2.5">
                     Cancel
                 </button>
 
                 <button
                     type="submit"
-                    class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                    class="btn-primary px-5 py-2.5">
                     Save Changes
                 </button>
             </div>

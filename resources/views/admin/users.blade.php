@@ -48,31 +48,34 @@
         },
     }"
 >
-    <div class="mx-auto max-w-none px-4 sm:px-6 lg:px-10 py-6 lg:py-8">
-        <div class="grid gap-6 lg:gap-8 lg:grid-cols-[280px,1fr]">
+    <div class="app-shell">
+        <div class="app-grid">
             <x-sidebar />
 
-            <main class="space-y-6 fade-in">
-                <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">Admin Panel</p>
-                        <h1 class="font-display text-3xl sm:text-4xl text-slate-900">User Management</h1>
+            <main class="app-main fade-in">
+                <x-app-header />
+                <header class="glass overflow-hidden p-7 sm:p-8 lg:p-10">
+                    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr),320px]">
+                        <div>
+                            <p class="eyebrow">Admin Panel</p>
+                            <h1 class="page-title">User Management</h1>
+                        </div>
                     </div>
                 </header>
 
                 <x-alert-success />
 
                 @if ($errors->any())
-                    <div class="glass rounded-2xl px-5 py-4 border-l-4 border-rose-400 text-rose-700 text-sm font-medium">
+                    <div class="notice-danger">
                         <p class="font-semibold">Validation failed. Please review the highlighted fields.</p>
                     </div>
                 @endif
 
-                <section class="glass rounded-2xl p-6 space-y-5">
+                <section class="glass p-6 space-y-5">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <p class="text-xs uppercase tracking-[0.2em] text-slate-400">User Actions</p>
-                            <h2 class="font-display text-xl text-slate-900">Create and browse accounts</h2>
+                            <p class="eyebrow">User Actions</p>
+                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">Create and browse accounts</h2>
                         </div>
 
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -82,7 +85,7 @@
                                     id="per_page"
                                     name="per_page"
                                     onchange="this.form.submit()"
-                                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                                    class="form-input py-2">
                                     @foreach ([10, 50, 100] as $size)
                                         <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
                                     @endforeach
@@ -93,25 +96,25 @@
                             <button
                                 type="button"
                                 @click="showCreateModal = true"
-                                class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                                class="btn-primary">
                                 Add User
                             </button>
                         </div>
                     </div>
                 </section>
 
-                <section class="glass rounded-2xl p-6">
+                <section class="glass p-6">
                     <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Users Table</p>
-                            <h2 class="font-display text-xl text-slate-900">Registered accounts</h2>
+                            <p class="eyebrow">Users Table</p>
+                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">Registered accounts</h2>
                         </div>
                         <p class="text-sm text-slate-500">Total {{ $users->total() }} users</p>
                     </div>
 
-                    <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                    <div class="overflow-x-auto rounded-[24px] border border-slate-200">
                         <table class="min-w-[980px] w-full text-left text-sm">
-                            <thead class="bg-slate-50">
+                            <thead class="bg-slate-50/90">
                                 <tr class="border-b border-slate-200 text-xs uppercase tracking-widest text-slate-400">
                                     <th class="px-4 py-3 font-medium">User</th>
                                     <th class="px-4 py-3 font-medium">Identity ID</th>
@@ -130,7 +133,7 @@
                                             <p class="font-semibold text-slate-900">{{ $user->name }}</p>
                                             <p class="text-slate-500">{{ $user->email }}</p>
                                             @if ($actor->is($user))
-                                                <span class="mt-2 inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                                                <span class="mt-2 inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
                                                     Logged in
                                                 </span>
                                             @endif
@@ -156,7 +159,7 @@
                                                             email: @js($user->email),
                                                             role: @js($user->role),
                                                         })"
-                                                        class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                                                        class="btn-secondary px-3 py-2 text-xs">
                                                         Edit
                                                     </button>
 
@@ -174,7 +177,7 @@
                                                                     action: @js(route('admin.users.destroy', $user)),
                                                                     name: @js($user->name),
                                                                 })"
-                                                                class="rounded-xl bg-rose-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-600">
+                                                                class="inline-flex items-center justify-center rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
                                                                 Delete
                                                             </button>
                                                         </form>

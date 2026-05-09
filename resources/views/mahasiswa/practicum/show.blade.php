@@ -1,23 +1,23 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="{{ $isCompleted ? 'min-h-screen' : 'h-screen overflow-hidden' }}">
-    <div class="mx-auto h-full max-w-none px-4 py-4 sm:px-6 lg:px-8">
+<div class="app-shell {{ $isCompleted ? '' : 'overflow-hidden' }}">
+    <div class="mx-auto h-full max-w-[1880px]">
         <main class="{{ $isCompleted ? 'space-y-6 fade-in' : 'flex h-full min-h-0 flex-col gap-4 fade-in' }}">
-            <header class="flex shrink-0 flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/70 px-5 py-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur xl:flex-row xl:items-center xl:justify-between">
+            <header class="glass flex shrink-0 flex-col gap-5 px-6 py-5 xl:flex-row xl:items-center xl:justify-between">
                 <div>
-                    <a href="{{ route('mahasiswa.content.index') }}" class="text-sm font-medium text-indigo-600 transition hover:text-indigo-700">
+                    <a href="{{ route('mahasiswa.content.index') }}" class="text-sm font-medium text-slate-500 transition hover:text-slate-900">
                         &larr; Back to content
                     </a>
-                    <p class="mt-3 text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Practicum Lab</p>
-                    <h1 class="mt-1 font-display text-2xl text-slate-900 sm:text-3xl">{{ $module->title }}</h1>
+                    <p class="eyebrow mt-4">Practicum Lab</p>
+                    <h1 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-950 sm:text-3xl">{{ $module->title }}</h1>
                     <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $module->description }}</p>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2 xl:min-w-[430px] xl:grid-cols-[repeat(3,minmax(0,1fr)),auto]">
                     @unless ($isCompleted)
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5">
-                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Timer</p>
+                    <div class="surface-muted px-4 py-3">
+                        <p class="eyebrow">Timer</p>
                         <p
                             id="session-timer"
                             data-expires-at="{{ $sessionExpiresAt }}"
@@ -28,19 +28,19 @@
                         </p>
                     </div>
                     @endunless
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5">
-                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Progress</p>
+                    <div class="surface-muted px-4 py-3">
+                        <p class="eyebrow">Progress</p>
                         <p class="mt-1 text-lg font-semibold text-slate-900">{{ $correctCount }} / {{ $questions->count() }}</p>
                     </div>
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-2.5">
-                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Runtime</p>
+                    <div class="surface-muted px-4 py-3">
+                        <p class="eyebrow">Runtime</p>
                         <p class="mt-1 text-lg font-semibold text-slate-900">{{ strtoupper($state['runtime'] ?? 'text') }}</p>
                     </div>
                     @unless ($isCompleted)
                     <button
                         type="submit"
                         form="end-session-form"
-                        class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+                        class="btn-secondary">
                         End
                     </button>
                     @endunless
@@ -51,34 +51,34 @@
                 <x-alert-success />
 
                 @if (session('error'))
-                <div class="glass rounded-2xl border-l-4 border-rose-400 px-5 py-3 text-sm font-medium text-rose-700">
+                <div class="notice-danger">
                     {{ session('error') }}
                 </div>
                 @endif
 
                 @if ($errors->any())
-                <div class="glass rounded-2xl border-l-4 border-rose-400 px-5 py-3 text-sm font-medium text-rose-700">
+                <div class="notice-danger">
                     {{ $errors->first() }}
                 </div>
                 @endif
             </div>
 
             @if (($state['runtime'] ?? null) !== 'python')
-            <div class="glass shrink-0 rounded-2xl border-l-4 border-amber-400 px-5 py-3 text-sm text-amber-800">
+            <div class="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
                 Answer-key validation mode.
             </div>
             @endif
 
             @if ($isCompleted)
-            <section class="glass rounded-[1.75rem] p-6 sm:p-7">
+            <section class="glass p-6 sm:p-7">
                 <div class="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Completed</p>
-                        <h2 class="mt-2 font-display text-3xl text-slate-900">All questions are done.</h2>
+                        <p class="eyebrow">Completed</p>
+                        <h2 class="mt-2 font-display text-3xl tracking-[-0.04em] text-slate-900">All questions are done.</h2>
                     </div>
                     <a
                         href="{{ route('mahasiswa.content.index') }}"
-                        class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+                        class="btn-primary">
                         Back to content
                     </a>
                 </div>
@@ -89,10 +89,10 @@
                     $answer = (array) data_get($state, 'answers.' . $question->id_question, []);
                     $isCorrect = $answer['is_correct'] ?? false;
                     @endphp
-                    <article class="rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                    <article class="surface-muted p-5">
                         <div class="flex items-center justify-between gap-4">
                             <span class="text-sm font-semibold text-slate-900">Question {{ $loop->iteration }}</span>
-                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $isCorrect ? 'bg-indigo-50 text-indigo-700' : 'bg-rose-50 text-rose-700' }}">
+                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $isCorrect ? 'bg-blue-50 text-blue-700' : 'bg-rose-50 text-rose-700' }}">
                                 {{ $isCorrect ? 'Correct' : 'Pending' }}
                             </span>
                         </div>
@@ -122,7 +122,7 @@
             };
             @endphp
             <section class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[450px,minmax(0,1fr),400px]">
-                <aside class="glass flex min-h-0 flex-col rounded-[1.75rem] p-5">
+                <aside class="glass flex min-h-0 flex-col p-5">
                     <div class="flex flex-wrap gap-2">
                         @foreach ($questions as $question)
                         @php
@@ -134,7 +134,7 @@
                             @if ($isAccessible)
                             <a
                             href="{{ route('mahasiswa.content.show', ['module' => $module, 'question' => $loop->index]) }}"
-                            class="rounded-full px-3 py-1 text-xs font-semibold transition {{ $isCurrent ? 'bg-slate-900 text-white' : ($isCorrect ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') }}">
+                            class="rounded-full px-3 py-1 text-xs font-semibold transition {{ $isCurrent ? 'bg-slate-900 text-white' : ($isCorrect ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') }}">
                             Q{{ $loop->iteration }}
                             </a>
                             @else
@@ -145,8 +145,8 @@
                             @endforeach
                     </div>
 
-                    <div class="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-5">
-                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">
+                    <div class="mt-4 surface-muted p-5">
+                        <p class="eyebrow">
                             Question {{ $currentIndex + 1 }} of {{ $questions->count() }}
                         </p>
                         <h2 class="mt-2 text-xl font-semibold text-slate-900">Task</h2>
@@ -157,7 +157,7 @@
                 </aside>
 
                 <section class="min-w-0">
-                    <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-950 shadow-[0_20px_50px_rgba(2,6,23,0.16)]">
+                    <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[30px] border border-slate-200 bg-slate-950 shadow-[0_20px_50px_rgba(2,6,23,0.16)]">
                         <div class="flex items-center justify-between border-b border-slate-800 px-5 py-4">
                             <div class="flex items-center gap-2">
                                 <span class="h-3 w-3 rounded-full bg-rose-400"></span>
@@ -200,7 +200,7 @@
                                 </button>
                                 <button
                                     type="submit"
-                                    class="rounded-2xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 sm:order-1">
+                                    class="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 sm:order-1">
                                     Run Code
                                 </button>
                             </div>
@@ -218,17 +218,17 @@
 
                 </section>
 
-                <section class="glass flex min-h-0 flex-col rounded-[1.75rem] p-6">
+                <section class="glass flex min-h-0 flex-col p-6">
                     <div class="flex items-center justify-between gap-4">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Output</p>
+                            <p class="eyebrow">Output</p>
                             <h3 class="mt-2 text-xl font-semibold text-slate-900">Latest Result</h3>
                         </div>
 
                         @php
                         $answerCorrect = $currentAnswer['is_correct'] ?? false;
                         @endphp
-                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $answerCorrect ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500' }}">
+                        <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $answerCorrect ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500' }}">
                             {{ $answerCorrect ? 'Correct' : 'Pending' }}
                         </span>
                     </div>

@@ -1,28 +1,36 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="min-h-screen">
-    <div class="mx-auto max-w-none px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
-        <div class="grid gap-6 lg:grid-cols-[280px,1fr] lg:gap-8">
+@php
+    $totalCourses = $courses->count();
+    $totalModules = $courses->sum(fn ($course) => $course->modules->count());
+@endphp
+<div class="app-shell">
+    <div class="app-grid">
             <x-sidebar />
 
-            <main class="space-y-6 fade-in">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500">Practicum</p>
-                        <h1 class="mt-2 font-display text-3xl text-slate-900 sm:text-4xl">Practicum Content</h1>
+            <main class="app-main fade-in">
+                <x-app-header />
+                <header class="glass p-8 lg:p-10">
+                    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr),280px]">
+                        <div>
+                            <p class="eyebrow">Practicum</p>
+                            <h1 class="page-title">Practicum Content</h1>
+                        </div>
                     </div>
+                </header>
 
                 <div class="space-y-4">
                     <x-alert-success />
 
                     @if (session('error'))
-                    <div class="glass rounded-2xl border-l-4 border-rose-400 px-5 py-4 text-sm font-medium text-rose-700">
+                    <div class="notice-danger">
                         {{ session('error') }}
                     </div>
                     @endif
 
                     @if ($errors->any())
-                    <div class="glass rounded-2xl border-l-4 border-rose-400 px-5 py-4 text-sm font-medium text-rose-700">
+                    <div class="notice-danger">
                         {{ $errors->first() }}
                     </div>
                     @endif
@@ -32,98 +40,116 @@
                 @php
                 $courseLabel = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python') ? 'Python Lab' : 'Interactive Lab';
                 @endphp
-                <section class="space-y-4">
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <section class="glass p-7 sm:p-8 space-y-6">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <h2 class="font-display text-2xl text-slate-900">{{ $course->course_title }}</h2>
+                            <span class="chip">{{ $courseLabel }}</span>
+                            <h2 class="mt-4 font-display text-3xl tracking-[-0.04em] text-slate-950">{{ $course->course_title }}</h2>
+                            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
+                                {{ $course->modules_count }} modules tersedia untuk course ini. Runtime dasar:
+                                <span class="font-semibold text-slate-700">{{ $course->docker_image }}</span>
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <span class="chip">{{ $course->modules_count }} modules</span>
+                            <span class="chip">{{ $course->docker_image }}</span>
                         </div>
                     </div>
 
-                    <div class="grid gap-4 xl:grid-cols-2">
+                    <div class="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
                         @foreach ($course->modules as $module)
                         @php
                         $status = $module->practicum_status;
                         $progress = $module->practicum_progress;
+                        $progressPercent = $progress?->status === 'completed'
+                            ? 100
+                            : ($module->questions_count > 0 && $progress
+                                ? (int) round((($progress->current_question_index ?? 0) / $module->questions_count) * 100)
+                                : 0);
                         $runtime = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python')
                             ? 'Python'
                             : (\Illuminate\Support\Str::contains(strtolower($course->docker_image), 'mysql') ? 'SQL' : 'General');
                         @endphp
 
-                        <article class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(15,23,42,0.09)]">
-                            <div class="flex items-start justify-between gap-4">
-                                <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-                                    Module {{ $loop->iteration }}
-                                </span>
-                                <span class="text-xs font-medium text-slate-400">
-                                    {{ $module->time_limit }} min
-                                </span>
-                            </div>
+                        <article class="module-row px-6 py-6">
+                            <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                                        <span class="chip">Module {{ $loop->iteration }}</span>
+                                        <span class="chip">{{ $module->time_limit }} min</span>
+                                        <span class="chip">{{ $module->questions_count }} questions</span>
+                                        <span class="chip">{{ $runtime }}</span>
+                                    </div>
 
-                            <div class="mt-5 space-y-3">
-                                <div>
-                                    <h3 class="text-xl font-semibold text-slate-900">{{ $module->title }}</h3>
-                                    <p class="mt-2 text-sm leading-6 text-slate-500">{{ $module->description }}</p>
+                                    <div class="mt-4">
+                                        <h3 class="text-[1.35rem] font-semibold tracking-[-0.03em] text-slate-950">{{ $module->title }}</h3>
+                                        <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-500">{{ $module->description }}</p>
+                                    </div>
+
+                                    <div class="mt-5 max-w-xl">
+                                        <div class="mb-3 flex items-center justify-between text-sm">
+                                            <p class="text-slate-400">
+                                            @switch($status)
+                                                @case('completed')
+                                                    Completed
+                                                    @break
+                                                @case('in_progress')
+                                                    In progress
+                                                    @break
+                                                @case('locked')
+                                                    Locked
+                                                    @break
+                                                @default
+                                                    Ready
+                                            @endswitch
+                                            </p>
+                                            <p class="text-slate-500">{{ $progressPercent }}%</p>
+                                        </div>
+                                        <div class="h-1.5 rounded-full bg-slate-100">
+                                            <div class="h-1.5 rounded-full bg-slate-400" style="width: {{ max(0, min(100, $progressPercent)) }}%"></div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                                    <span class="rounded-full border border-slate-200 px-3 py-1">{{ $module->questions_count }} questions</span>
-                                    <span class="rounded-full border border-slate-200 px-3 py-1">{{ $runtime }}</span>
-                                </div>
-                            </div>
-
-                            <div class="mt-6 flex items-center justify-between">
-                                <p class="text-sm text-slate-400">
-                                    @switch($status)
-                                        @case('completed')
-                                            Completed
-                                            @break
-                                        @case('in_progress')
-                                            In progress
-                                            @break
-                                        @case('locked')
-                                            Locked
-                                            @break
-                                        @default
-                                            Ready
-                                    @endswitch
-                                </p>
-
-                                @if ($status === 'completed')
-                                <a
-                                    href="{{ route('mahasiswa.content.show', $module) }}"
-                                    class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-                                    Review
-                                </a>
-                                @elseif ($status === 'in_progress')
-                                <a
-                                    href="{{ route('mahasiswa.content.show', $module) }}"
-                                    class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-                                    Continue
-                                </a>
-                                @elseif ($status === 'locked')
-                                <button
-                                    type="button"
-                                    disabled
-                                    class="cursor-not-allowed rounded-2xl bg-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-400">
-                                    Locked
-                                </button>
-                                @else
-                                <form method="POST" action="{{ route('mahasiswa.content.start', $module) }}">
-                                    @csrf
+                                <div class="xl:w-[180px] xl:shrink-0 xl:self-center">
+                                    @if ($status === 'completed')
+                                    <a
+                                        href="{{ route('mahasiswa.content.show', $module) }}"
+                                        class="btn-primary w-full">
+                                        Review
+                                    </a>
+                                    @elseif ($status === 'in_progress')
+                                    <a
+                                        href="{{ route('mahasiswa.content.show', $module) }}"
+                                        class="btn-primary w-full">
+                                        Continue
+                                    </a>
+                                    @elseif ($status === 'locked')
                                     <button
-                                        type="submit"
-                                        class="rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-                                        Start
+                                        type="button"
+                                        disabled
+                                        class="w-full cursor-not-allowed rounded-[14px] border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-400">
+                                        Locked
                                     </button>
-                                </form>
-                                @endif
+                                    @else
+                                    <form method="POST" action="{{ route('mahasiswa.content.start', $module) }}">
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            class="btn-primary w-full">
+                                            Start
+                                        </button>
+                                    </form>
+                                    @endif
+                                </div>
                             </div>
                         </article>
                         @endforeach
                     </div>
                 </section>
                 @empty
-                <section class="glass rounded-[1.75rem] px-6 py-10 text-center">
+                <section class="glass px-6 py-10 text-center">
                     <h2 class="font-display text-2xl text-slate-900">No content found</h2>
                 </section>
                 @endforelse
