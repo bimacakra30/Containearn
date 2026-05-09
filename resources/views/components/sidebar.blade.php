@@ -39,10 +39,16 @@ $user = auth()->user();
     @click="closeMobileSidebar()"></div>
 
 <aside
-    class="app-sidebar fade-in">
+    class="app-sidebar fade-in"
+    @mouseenter="openSidebarPeek()"
+    @mouseleave="closeSidebarPeek()">
     <div class="sidebar-brand-bar">
         <div class="sidebar-brand-copy min-w-0">
             <h2 class="truncate font-display text-[1.55rem] tracking-[-0.04em] text-slate-950">Containearn Lab</h2>
+        </div>
+
+        <div class="sidebar-brand-compact" aria-hidden="true">
+            C
         </div>
 
         <button type="button" @click="toggleSidebar()" class="sidebar-toggle xl:hidden" aria-label="Toggle sidebar">

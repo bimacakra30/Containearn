@@ -3,6 +3,7 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 
 const PAGE_LOADING_CLASS = 'page-loading';
+const DESKTOP_SIDEBAR_STORAGE_KEY = 'containearn_sidebar_hidden_v1';
 
 const startPageLoading = () => {
     document.body.classList.add(PAGE_LOADING_CLASS);
@@ -62,14 +63,21 @@ const shouldHandleNavigationLink = (link, event) => {
 };
 
 Alpine.data('shellLayout', () => ({
+    desktopSidebarHidden: false,
+    desktopSidebarPeek: false,
     mobileSidebarOpen: false,
     init() {
         stopPageLoading();
 
+        this.desktopSidebarHidden = localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY) === '1';
+
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 1280) {
                 this.mobileSidebarOpen = false;
+                return;
             }
+
+            this.desktopSidebarPeek = false;
         });
 
         window.addEventListener('pageshow', () => {
@@ -101,10 +109,27 @@ Alpine.data('shellLayout', () => ({
         });
     },
     toggleSidebar() {
+        if (window.innerWidth >= 1280) {
+            this.desktopSidebarHidden = !this.desktopSidebarHidden;
+            this.desktopSidebarPeek = false;
+            localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, this.desktopSidebarHidden ? '1' : '0');
+            return;
+        }
+
         this.mobileSidebarOpen = !this.mobileSidebarOpen;
     },
     closeMobileSidebar() {
         this.mobileSidebarOpen = false;
+    },
+    openSidebarPeek() {
+        if (window.innerWidth >= 1280 && this.desktopSidebarHidden) {
+            this.desktopSidebarPeek = true;
+        }
+    },
+    closeSidebarPeek() {
+        if (window.innerWidth >= 1280) {
+            this.desktopSidebarPeek = false;
+        }
     },
 }));
 

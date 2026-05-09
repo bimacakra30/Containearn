@@ -16,6 +16,8 @@
     x-data="shellLayout()"
     x-init="init()"
     @keydown.window.escape="closeMobileSidebar()"
+    :data-sidebar="desktopSidebarHidden ? 'closed' : 'open'"
+    :data-sidebar-peek="desktopSidebarPeek ? 'open' : 'closed'"
     :data-sidebar-mobile="mobileSidebarOpen ? 'open' : 'closed'"
     class="font-sans antialiased">
     <div class="page-loader" aria-hidden="true">
