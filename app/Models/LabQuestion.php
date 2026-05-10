@@ -6,21 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Question extends Model
+class LabQuestion extends Model
 {
-    protected $table = 'quiz_question';
+    protected $table = 'lab_questions';
 
     protected $primaryKey = 'id_question';
 
     protected $fillable = [
         'id_module',
         'question',
-        'option_a',
-        'option_b',
-        'option_c',
-        'option_d',
-        'correct_option',
-        'order',
+        'output',
     ];
 
     public function module(): BelongsTo
@@ -30,6 +25,6 @@ class Question extends Model
 
     public function progresses(): HasMany
     {
-        return $this->hasMany(QuizProgress::class, 'question_id', 'id_question');
+        return $this->hasMany(QuestionProgress::class, 'lab_question_id', 'id_question');
     }
 }

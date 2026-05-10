@@ -28,9 +28,14 @@ Route::middleware(['auth', 'role:superadmin,dosen'])->prefix('admin')->group(fun
     Route::post('/contents/courses/{course}/modules', [PracticumContentController::class, 'storeModule'])->name('admin.contents.modules.store');
     Route::patch('/contents/modules/{module}', [PracticumContentController::class, 'updateModule'])->name('admin.contents.modules.update');
     Route::delete('/contents/modules/{module}', [PracticumContentController::class, 'destroyModule'])->name('admin.contents.modules.destroy');
+
     Route::post('/contents/modules/{module}/questions', [PracticumContentController::class, 'storeQuestion'])->name('admin.contents.questions.store');
     Route::patch('/contents/questions/{question}', [PracticumContentController::class, 'updateQuestion'])->name('admin.contents.questions.update');
     Route::delete('/contents/questions/{question}', [PracticumContentController::class, 'destroyQuestion'])->name('admin.contents.questions.destroy');
+
+    Route::post('/contents/modules/{module}/lab-questions', [PracticumContentController::class, 'storeLabQuestion'])->name('admin.contents.lab-questions.store');
+    Route::patch('/contents/lab-questions/{labQuestion}', [PracticumContentController::class, 'updateLabQuestion'])->name('admin.contents.lab-questions.update');
+    Route::delete('/contents/lab-questions/{labQuestion}', [PracticumContentController::class, 'destroyLabQuestion'])->name('admin.contents.lab-questions.destroy');
 
     Route::get('/users',           [UserController::class, 'index'])->name('admin.users.index');
     Route::post('/users',          [UserController::class, 'store'])->name('admin.users.store');
@@ -46,11 +51,13 @@ Route::middleware(['auth', 'role:mahasiswa'])->group(function () {
     Route::get('/content', [StudentPracticumController::class, 'index'])->name('mahasiswa.content.index');
 
     Route::whereNumber(['module'])->group(function () {
-        Route::get('/content/{module}',     [StudentPracticumController::class, 'show'])->name('mahasiswa.content.show');
-        Route::post('/content/{module}/start', [StudentPracticumController::class, 'start'])->name('mahasiswa.content.start');
-        Route::post('/content/{module}/run',   [StudentPracticumController::class, 'run'])->name('mahasiswa.content.run');
-        Route::post('/content/{module}/end',   [StudentPracticumController::class, 'end'])->name('mahasiswa.content.end');
-        Route::post('/content/{module}/next',  [StudentPracticumController::class, 'next'])->name('mahasiswa.content.next');
+        Route::get('/content/{module}',            [StudentPracticumController::class, 'show'])->name('mahasiswa.content.show');
+        Route::post('/content/{module}/start',     [StudentPracticumController::class, 'start'])->name('mahasiswa.content.start');
+        Route::post('/content/{module}/quiz',      [StudentPracticumController::class, 'submitQuiz'])->name('mahasiswa.content.quiz');
+        Route::post('/content/{module}/run',       [StudentPracticumController::class, 'run'])->name('mahasiswa.content.run');
+        Route::post('/content/{module}/end',       [StudentPracticumController::class, 'end'])->name('mahasiswa.content.end');
+        Route::post('/content/{module}/next',      [StudentPracticumController::class, 'next'])->name('mahasiswa.content.next');
+        Route::get('/modules/{module}/material-pdf', [StudentPracticumController::class, 'servePdf'])->name('mahasiswa.module.pdf');
     });
 });
 

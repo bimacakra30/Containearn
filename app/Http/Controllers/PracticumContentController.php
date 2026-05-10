@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class PracticumContentController extends Controller
@@ -80,7 +81,7 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $module->update($this->validateModule($request));
+        $module->update($this->validateModule($request, $module));
 
         return redirect()->route('admin.contents.index')
             ->with('success', 'Module updated successfully.');
@@ -90,6 +91,7 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
+        $this->deleteModuleMaterial($module);
         $module->delete();
 
         return redirect()->route('admin.contents.index')
@@ -152,11 +154,12 @@ class PracticumContentController extends Controller
         ];
     }
 
-    private function validateModule(Request $request): array
+    private function validateModule(Request $request, ?Module $module = null): array
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
+            'material_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'time_limit' => ['required', 'integer', 'min:1', 'max:1440'],
             'form_scope' => ['nullable', 'string'],
             'course_context_id' => ['nullable', 'integer'],
@@ -164,11 +167,23 @@ class PracticumContentController extends Controller
             'question_context_id' => ['nullable', 'integer'],
         ]);
 
-        return [
+        $payload = [
             'title' => $validated['title'],
             'description' => $validated['description'],
             'time_limit' => $validated['time_limit'],
         ];
+
+        if ($request->hasFile('material_pdf')) {
+            if ($module !== null) {
+                $this->deleteModuleMaterial($module);
+            }
+
+            $payload['material_pdf_path'] = $request
+                ->file('material_pdf')
+                ->store('module-materials', 'public');
+        }
+
+        return $payload;
     }
 
     private function validateQuestion(Request $request): array
@@ -186,5 +201,12 @@ class PracticumContentController extends Controller
             'question' => $validated['question'],
             'output' => $validated['output'],
         ];
+    }
+
+    private function deleteModuleMaterial(Module $module): void
+    {
+        if ($module->material_pdf_path) {
+            Storage::disk('public')->delete($module->material_pdf_path);
+        }
     }
 }

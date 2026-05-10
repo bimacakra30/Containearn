@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\LabQuestion;
 use App\Models\Module;
 use App\Models\ModuleProgress;
 use App\Models\Question;
 use App\Models\QuestionProgress;
+use App\Models\QuizProgress;
 use App\Models\User;
 use App\Services\DockerService;
 use Illuminate\Support\Carbon;
@@ -24,7 +26,10 @@ class StudentPracticumController extends Controller
         $user = $request->user();
 
         $courses = Course::query()
-            ->with(['modules' => fn ($q) => $q->withCount('questions')->orderBy('id_module')])
+            ->with(['modules' => fn($q) => $q
+                ->withCount(['questions', 'labQuestions'])
+                ->with('questions:id_question,id_module')
+                ->orderBy('id_module')])
             ->orderBy('id_course')
             ->get();
 
@@ -33,21 +38,25 @@ class StudentPracticumController extends Controller
             ->get()
             ->keyBy('module_id');
 
+        $quizProgresses = QuizProgress::query()
+            ->where('user_id', $user->getKey())
+            ->where('is_correct', true)
+            ->get()
+            ->keyBy('question_id');
+
         $courses = $courses
-            ->map(fn (Course $c) => $this->decorateCourseModules($c, $progresses))
+            ->map(fn(Course $c) => $this->decorateCourseModules($c, $progresses, $quizProgresses))
             ->values();
 
         return view('mahasiswa.practicum.index', [
-            'courses'      => $courses
+            'courses' => $courses,
         ]);
     }
 
     public function start(Request $request, Module $module, DockerService $docker): RedirectResponse
     {
         $user = $request->user();
-        $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
-
-        abort_if($module->questions->isEmpty(), 404, 'Module does not have any questions yet.');
+        $module->load(['course', 'questions', 'labQuestions']);
 
         $progress = $this->findProgress($user, $module);
 
@@ -63,36 +72,14 @@ class StudentPracticumController extends Controller
             'current_question_index' => 0,
         ]);
 
-        if ($progress->status !== 'completed') {
-            $existing = $request->session()->get('practicum.runtime.' . $module->getKey());
-            $existing = is_array($existing) ? $existing : null;
-
-            if ($existing && $this->remainingSessionSeconds($existing, $module) > 0) {
-                return redirect()->route('mahasiswa.content.show', $module)
-                    ->with('success', 'Progress resumed.');
-            }
-        }
-
-        $this->resetAllRuntimeSessions($request, $docker);
-
-        if ($progress->status !== 'completed') {
-            try {
-                $state = $this->prepareRuntimeState($user, $module, $docker);
-                $request->session()->put('practicum.runtime.' . $module->getKey(), $state);
-            } catch (Throwable $e) {
-                return redirect()->route('mahasiswa.content.index')
-                    ->with('error', 'Failed to prepare the lab container: ' . $e->getMessage());
-            }
-        }
-
-        return redirect()->route('mahasiswa.content.show', $module)
+        return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'material'])
             ->with('success', $progress->wasRecentlyCreated ? 'Module started.' : 'Progress resumed.');
     }
 
     public function show(Request $request, Module $module, DockerService $docker): View|RedirectResponse
     {
         $user = $request->user();
-        $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
+        $module->load(['course', 'questions', 'labQuestions']);
 
         $progress = $this->findProgress($user, $module);
 
@@ -105,9 +92,34 @@ class StudentPracticumController extends Controller
                 ->with('error', 'Start a module first.');
         }
 
-        $runtimeState = [];
+        $activeView   = $request->query('view', 'material');
+        $validViews   = ['material', 'quiz', 'lab', 'summary'];
+        $activeView   = in_array($activeView, $validViews, true) ? $activeView : 'material';
 
-        if ($progress->status !== 'completed') {
+        $quizQuestions    = $module->questions->values();
+        $quizProgresses   = QuizProgress::query()
+            ->where('user_id', $user->getKey())
+            ->whereIn('question_id', $quizQuestions->pluck('id_question'))
+            ->get()
+            ->keyBy('question_id');
+
+        $quizAnswers      = $quizQuestions->mapWithKeys(fn(Question $q) => [
+            $q->id_question => [
+                'selected_option' => $quizProgresses->get($q->id_question)?->selected_option,
+                'is_correct'      => $quizProgresses->get($q->id_question)?->is_correct ?? false,
+            ],
+        ])->all();
+
+        $correctCount     = $quizProgresses->where('is_correct', true)->count();
+        $quizTotal        = $quizQuestions->count();
+        $quizAllCorrect   = $quizTotal === 0 || $correctCount >= $quizTotal;
+        $labQuestions  = $module->labQuestions->values();
+        $hasLab        = $labQuestions->isNotEmpty();
+        $runtimeState  = [];
+
+        $shouldPrepareRuntime = $hasLab && $progress->status !== 'completed' && $activeView === 'lab';
+
+        if ($shouldPrepareRuntime) {
             $sessionKey   = 'practicum.runtime.' . $module->getKey();
             $runtimeState = $request->session()->get($sessionKey);
             $runtimeState = is_array($runtimeState) ? $runtimeState : null;
@@ -131,21 +143,38 @@ class StudentPracticumController extends Controller
             }
         }
 
-        [$state, $questionProgresses] = $this->buildModuleState($user, $module, $progress, $runtimeState);
+        [$state, $labProgresses] = $this->buildModuleState($user, $module, $progress, $runtimeState, $labQuestions);
 
-        $questions             = $module->questions->values();
-        $rawIndex              = (int) ($progress->current_question_index ?? 0);
-        $checkpointIndex       = min($rawIndex, max($questions->count() - 1, 0));
-        $isCompleted           = $progress->status === 'completed' || $questions->isEmpty() || $rawIndex >= $questions->count();
-        $selectedIndex         = $this->resolveSelectedQuestionIndex($request->integer('question', $rawIndex), $progress, $questions);
-        $currentQuestion       = $questions->get($selectedIndex);
-        $currentAnswer         = $currentQuestion instanceof Question
+        $rawIndex        = (int) ($progress->current_question_index ?? 0);
+        $checkpointIndex = min($rawIndex, max($labQuestions->count() - 1, 0));
+        $isCompleted     = $progress->status === 'completed'
+            || ($quizAllCorrect && (!$hasLab || $rawIndex >= $labQuestions->count()));
+
+        $selectedIndex   = $this->resolveSelectedQuestionIndex($request->integer('question', $rawIndex), $progress, $labQuestions);
+        $currentQuestion = $labQuestions->get($selectedIndex);
+        $currentAnswer   = $currentQuestion instanceof LabQuestion
             ? (array) data_get($state, 'answers.' . $currentQuestion->id_question, [])
             : [];
 
+        $editorLanguage = match ($state['runtime'] ?? 'text') {
+            'python' => 'python',
+            'sql'    => 'sql',
+            default  => 'plaintext',
+        };
+        $editorFilename = match ($editorLanguage) {
+            'python' => 'main.py',
+            'sql'    => 'query.sql',
+            default  => 'answer.txt',
+        };
+        $canOpenSummary = $isCompleted || ($quizAllCorrect && !$hasLab);
+
         return view('mahasiswa.practicum.show', [
             'module'                => $module,
-            'questions'             => $questions,
+            'quizQuestions'         => $quizQuestions,
+            'quizAnswers'           => $quizAnswers,
+            'quizAllCorrect'        => $quizAllCorrect,
+            'correctCount'          => $correctCount,
+            'questions'             => $labQuestions,
             'currentIndex'          => $selectedIndex,
             'checkpointIndex'       => $checkpointIndex,
             'currentQuestion'       => $currentQuestion,
@@ -154,11 +183,46 @@ class StudentPracticumController extends Controller
             'codeDraft'             => old('code', $currentAnswer['submitted_code'] ?? ''),
             'state'                 => $state,
             'isCompleted'           => $isCompleted,
-            'correctCount'          => $questionProgresses->where('is_correct', true)->count(),
-            'canContinue'           => !$isCompleted && $selectedIndex === $checkpointIndex && ($currentAnswer['is_correct'] ?? false),
+            'hasLab'                => $hasLab,
+            'canOpenSummary'        => $canOpenSummary,
+            'editorLanguage'        => $editorLanguage,
+            'editorFilename'        => $editorFilename,
+            'canContinue'           => !$isCompleted && $selectedIndex <= $checkpointIndex && ($currentAnswer['is_correct'] ?? false),
             'sessionExpiresAt'      => $isCompleted ? null : data_get($state, 'session_expires_at'),
             'sessionSignature'      => data_get($state, 'session_signature'),
         ]);
+    }
+
+    public function submitQuiz(Request $request, Module $module): RedirectResponse
+    {
+        $user = $request->user();
+        $module->load(['questions']);
+
+        $progress = $this->findProgress($user, $module);
+        if ($progress === null) {
+            return redirect()->route('mahasiswa.content.index')
+                ->with('error', 'Start the module first.');
+        }
+
+        $payload = $request->validate([
+            'question_id' => ['required', 'integer'],
+            'selected_option' => ['required', 'in:a,b,c,d'],
+        ]);
+
+        $question = $module->questions->firstWhere('id_question', $payload['question_id']);
+        if (!$question instanceof Question) {
+            return back()->with('error', 'Question not found.');
+        }
+
+        $isCorrect = $payload['selected_option'] === $question->correct_option;
+
+        QuizProgress::query()->updateOrCreate(
+            ['user_id' => $user->getKey(), 'question_id' => $question->id_question],
+            ['selected_option' => $payload['selected_option'], 'is_correct' => $isCorrect]
+        );
+
+        return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']) . '#q' . $question->id_question)
+            ->with($isCorrect ? 'success' : 'error', $isCorrect ? 'Jawaban benar!' : 'Jawaban salah, coba lagi.');
     }
 
     public function run(Request $request, Module $module, DockerService $docker): RedirectResponse
@@ -170,7 +234,7 @@ class StudentPracticumController extends Controller
             'session_expires_at'      => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
+        $module->load(['course', 'labQuestions']);
         $progress = $this->findProgress($user, $module);
 
         if ($progress === null) {
@@ -179,19 +243,20 @@ class StudentPracticumController extends Controller
         }
 
         if ($progress->status === 'completed') {
-            return redirect()->route('mahasiswa.content.show', $module)
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary'])
                 ->with('success', 'This module is complete.');
         }
 
-        $questions       = $module->questions->values();
+        $labQuestions    = $module->labQuestions->values();
         $selectedIndex   = $this->resolveSelectedQuestionIndex(
             (int) ($payload['selected_question_index'] ?? $progress->current_question_index),
-            $progress, $questions
+            $progress,
+            $labQuestions
         );
-        $currentQuestion = $questions->get($selectedIndex);
+        $currentQuestion = $labQuestions->get($selectedIndex);
 
-        if (!$currentQuestion instanceof Question) {
-            return redirect()->route('mahasiswa.content.show', $module)
+        if (!$currentQuestion instanceof LabQuestion) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary'])
                 ->with('success', 'This module is complete.');
         }
 
@@ -214,26 +279,21 @@ class StudentPracticumController extends Controller
 
         $request->session()->put($sessionKey, $runtimeState);
 
-        $existing = QuestionProgress::query()
-            ->where('user_id', $user->getKey())
-            ->where('question_id', $currentQuestion->getKey())
-            ->first();
-
         QuestionProgress::query()->updateOrCreate(
-            ['user_id' => $user->getKey(), 'question_id' => $currentQuestion->getKey()],
+            ['user_id' => $user->getKey(), 'lab_question_id' => $currentQuestion->getKey()],
             [
                 'submitted_code' => $payload['code'],
                 'stdout'         => $execution['stdout'],
                 'stderr'         => $execution['stderr'],
-                'is_correct'     => ($existing?->is_correct ?? false) || $execution['is_correct'],
+                'is_correct'     => $execution['is_correct'],
             ]
         );
 
-        return redirect()->route('mahasiswa.content.show', ['module' => $module, 'question' => $selectedIndex])
-            ->with(
-                $execution['is_correct'] ? 'success' : 'error',
-                $execution['is_correct'] ? 'Correct. Review your output, then continue.' : 'Output does not match yet.'
-            );
+        return redirect()->route('mahasiswa.content.show', [
+            'module' => $module,
+            'view' => 'lab',
+            'question' => $selectedIndex,
+        ]);
     }
 
     public function end(Request $request, Module $module, DockerService $docker): RedirectResponse
@@ -252,7 +312,7 @@ class StudentPracticumController extends Controller
     public function next(Request $request, Module $module, DockerService $docker): RedirectResponse
     {
         $user = $request->user();
-        $module->load(['course', 'questions' => fn ($q) => $q->orderBy('id_question')]);
+        $module->load(['course', 'labQuestions']);
 
         $progress = $this->findProgress($user, $module);
 
@@ -266,7 +326,10 @@ class StudentPracticumController extends Controller
                 ->with('success', 'This module is complete.');
         }
 
-        $payload      = $request->validate(['session_expires_at' => ['nullable', 'integer', 'min:1']]);
+        $payload      = $request->validate([
+            'selected_question_index' => ['nullable', 'integer', 'min:0'],
+            'session_expires_at'      => ['nullable', 'integer', 'min:1'],
+        ]);
         $sessionKey   = 'practicum.runtime.' . $module->getKey();
         $runtimeState = $this->normalizeRuntimeState(
             $request->session()->get($sessionKey) ?? [],
@@ -278,74 +341,79 @@ class StudentPracticumController extends Controller
             return $expired;
         }
 
-        $questions       = $module->questions->values();
-        $currentQuestion = $questions->get((int) $progress->current_question_index);
+        $labQuestions    = $module->labQuestions->values();
+        $selectedIndex   = $this->resolveSelectedQuestionIndex(
+            (int) ($payload['selected_question_index'] ?? $progress->current_question_index),
+            $progress,
+            $labQuestions
+        );
+        $currentQuestion = $labQuestions->get($selectedIndex);
 
-        if (!$currentQuestion instanceof Question) {
+        if (!$currentQuestion instanceof LabQuestion) {
             return redirect()->route('mahasiswa.content.show', $module)
                 ->with('success', 'This module is complete.');
         }
 
         $answer = QuestionProgress::query()
             ->where('user_id', $user->getKey())
-            ->where('question_id', $currentQuestion->getKey())
+            ->where('lab_question_id', $currentQuestion->getKey())
             ->first();
 
         if (!($answer?->is_correct)) {
-            return redirect()->route('mahasiswa.content.show', $module)
+            return redirect()->route('mahasiswa.content.show', [
+                'module' => $module,
+                'view' => 'lab',
+                'question' => $selectedIndex,
+            ])
                 ->with('error', 'Continue is available after a correct answer.');
         }
 
-        $nextIndex = $progress->current_question_index + 1;
+        $nextIndex = max((int) $progress->current_question_index, $selectedIndex + 1);
 
-        if ($nextIndex >= $questions->count()) {
-            $progress->update(['status' => 'completed', 'current_question_index' => $questions->count(), 'completed_at' => now()]);
+        if ($nextIndex >= $labQuestions->count()) {
+            $progress->update(['status' => 'completed', 'current_question_index' => $labQuestions->count(), 'completed_at' => now()]);
             $this->destroyRuntimeState($request, $module, $docker);
         } else {
             $progress->update(['status' => 'in_progress', 'current_question_index' => $nextIndex]);
         }
 
-        return redirect()->route('mahasiswa.content.show', $module)
-            ->with('success', $nextIndex >= $questions->count() ? 'Module completed.' : 'Moved to the next question.');
+        if ($nextIndex >= $labQuestions->count()) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary'])
+                ->with('success', 'Module completed.');
+        }
+
+        return redirect()->route('mahasiswa.content.show', [
+            'module' => $module,
+            'view' => 'lab',
+            'question' => $nextIndex,
+        ]);
     }
 
-    private function decorateCourseModules(Course $course, Collection $progresses): Course
+    public function servePdf(Module $module)
     {
-        $previousCompleted = true;
+        abort_unless($module->material_pdf_path, 404);
+        $path = storage_path('app/public/' . $module->material_pdf_path);
+        abort_unless(file_exists($path), 404);
 
-        $course->setRelation('modules', $course->modules
-            ->sortBy('id_module')
-            ->values()
-            ->map(function (Module $module) use ($progresses, &$previousCompleted) {
-                $progress = $progresses->get($module->getKey());
-                $status   = match (true) {
-                    $progress?->status === 'completed'   => 'completed',
-                    $progress?->status === 'in_progress' => 'in_progress',
-                    $previousCompleted                   => 'available',
-                    default                              => 'locked',
-                };
-
-                $module->setAttribute('practicum_status', $status);
-                $module->setAttribute('practicum_progress', $progress);
-                $previousCompleted = $progress?->status === 'completed';
-
-                return $module;
-            })
+        return response()->make(
+            file_get_contents($path),
+            200,
+            [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="materi.pdf"',
+            ]
         );
-
-        return $course;
     }
-
-    private function buildModuleState(User $user, Module $module, ModuleProgress $progress, array $runtimeState = []): array
+    private function buildModuleState(User $user, Module $module, ModuleProgress $progress, array $runtimeState = [], Collection $labQuestions = new Collection()): array
     {
-        $questionProgresses = QuestionProgress::query()
+        $labProgresses = QuestionProgress::query()
             ->where('user_id', $user->getKey())
-            ->whereIn('question_id', $module->questions->pluck('id_question'))
+            ->whereIn('lab_question_id', $labQuestions->pluck('id_question'))
             ->get()
-            ->keyBy('question_id');
+            ->keyBy('lab_question_id');
 
-        $answers = $questionProgresses->mapWithKeys(fn (QuestionProgress $qp) => [
-            $qp->question_id => [
+        $answers = $labProgresses->mapWithKeys(fn(QuestionProgress $qp) => [
+            $qp->lab_question_id => [
                 'submitted_code' => $qp->submitted_code,
                 'stdout'         => $qp->stdout,
                 'stderr'         => $qp->stderr,
@@ -355,16 +423,16 @@ class StudentPracticumController extends Controller
         ])->all();
 
         return [[
-            'runtime'              => $this->resolveRuntime($module),
-            'status'               => $progress->status,
+            'runtime'                => $this->resolveRuntime($module),
+            'status'                 => $progress->status,
             'current_question_index' => $progress->current_question_index,
-            'completed_at'         => optional($progress->completed_at)->toIso8601String(),
-            'session_expires_at'   => $runtimeState['expires_at'] ?? null,
-            'session_signature'    => $runtimeState['session_key'] ?? ($runtimeState['container_name'] ?? null),
-            'answers'              => $answers,
-            'container_name'       => $runtimeState['container_name'] ?? null,
-            'container_id'         => $runtimeState['container_id'] ?? null,
-        ], $questionProgresses];
+            'completed_at'           => optional($progress->completed_at)->toIso8601String(),
+            'session_expires_at'     => $runtimeState['expires_at'] ?? null,
+            'session_signature'      => $runtimeState['session_key'] ?? ($runtimeState['container_name'] ?? null),
+            'answers'                => $answers,
+            'container_name'         => $runtimeState['container_name'] ?? null,
+            'container_id'           => $runtimeState['container_id'] ?? null,
+        ], $labProgresses];
     }
 
     private function resolveSelectedQuestionIndex(int $requested, ModuleProgress $progress, Collection $questions): int
@@ -379,9 +447,12 @@ class StudentPracticumController extends Controller
     }
 
     private function executeSubmission(
-        Module $module, Question $question,
-        string $code, array &$runtimeState,
-        DockerService $docker, User $user,
+        Module $module,
+        LabQuestion $question,
+        string $code,
+        array &$runtimeState,
+        DockerService $docker,
+        User $user,
     ): array {
         $runtime = $this->resolveRuntime($module);
 
@@ -404,8 +475,8 @@ class StudentPracticumController extends Controller
 
         return [
             'exit_code' => 0,
-            'stdout' => $code,
-            'stderr' => '',
+            'stdout'    => $code,
+            'stderr'    => '',
             'is_correct' => $this->normalizeOutput($code) === $this->normalizeOutput($question->output),
         ];
     }
@@ -420,17 +491,44 @@ class StudentPracticumController extends Controller
 
     private function isModuleUnlocked(User $user, Module $module): bool
     {
-        $previousId = Module::query()
+        $previousModule = Module::query()
             ->where('id_course', $module->id_course)
             ->where('id_module', '<', $module->getKey())
             ->orderByDesc('id_module')
-            ->value('id_module');
+            ->with(['questions:id_question,id_module'])
+            ->withCount(['questions', 'labQuestions'])
+            ->first();
 
-        return $previousId === null || ModuleProgress::query()
+        return $previousModule === null || $this->isModuleCompletedForUser($user, $previousModule);
+    }
+
+    private function isModuleCompletedForUser(User $user, Module $module): bool
+    {
+        $progress = ModuleProgress::query()
             ->where('user_id', $user->getKey())
-            ->where('module_id', $previousId)
-            ->where('status', 'completed')
-            ->exists();
+            ->where('module_id', $module->getKey())
+            ->first();
+
+        if ($progress?->status === 'completed') {
+            return true;
+        }
+
+        if ($progress === null || (int) $module->lab_questions_count > 0) {
+            return false;
+        }
+
+        $questionIds = $module->questions->pluck('id_question');
+        if ($questionIds->isEmpty()) {
+            return false;
+        }
+
+        $correctCount = QuizProgress::query()
+            ->where('user_id', $user->getKey())
+            ->whereIn('question_id', $questionIds)
+            ->where('is_correct', true)
+            ->count();
+
+        return $correctCount >= $questionIds->count();
     }
 
     private function resolveRuntime(Module $module): string
@@ -447,10 +545,10 @@ class StudentPracticumController extends Controller
     {
         $runtime = $this->resolveRuntime($module);
         $state   = [
-            'runtime'    => $runtime,
-            'started_at' => now()->toIso8601String(),
-            'expires_at' => now()->addMinutes(max(1, (int) $module->time_limit))->getTimestampMs(),
-            'session_key'=> (string) Str::uuid(),
+            'runtime'     => $runtime,
+            'started_at'  => now()->toIso8601String(),
+            'expires_at'  => now()->addMinutes(max(1, (int) $module->time_limit))->getTimestampMs(),
+            'session_key' => (string) Str::uuid(),
         ];
 
         if ($runtime === 'python') {
@@ -488,8 +586,11 @@ class StudentPracticumController extends Controller
     }
 
     private function expiredSessionResponse(
-        Request $request, Module $module, DockerService $docker,
-        array $runtimeState, ?int $browserExpiresAt = null,
+        Request $request,
+        Module $module,
+        DockerService $docker,
+        array $runtimeState,
+        ?int $browserExpiresAt = null,
     ): ?RedirectResponse {
         $browserExpired = $browserExpiresAt !== null && now()->getTimestampMs() >= $browserExpiresAt;
 
@@ -523,5 +624,46 @@ class StudentPracticumController extends Controller
         if (!empty($state['container_name'])) $docker->destroyContainer($state['container_name']);
 
         $request->session()->forget($key);
+    }
+
+    private function decorateCourseModules(Course $course, Collection $progresses, Collection $quizProgresses): Course
+    {
+        $previousCompleted = true;
+
+        $course->setRelation(
+            'modules',
+            $course->modules
+                ->sortBy('id_module')
+                ->values()
+                ->map(function (Module $module) use ($progresses, $quizProgresses, &$previousCompleted) {
+                    $progress     = $progresses->get($module->getKey());
+                    $quizTotal    = (int) $module->questions_count;
+                    $labTotal     = (int) $module->lab_questions_count;
+                    $correctCount = $module->questions
+                        ->filter(fn(Question $question) => $quizProgresses->has($question->id_question))
+                        ->count();
+
+                    $quizPercent = $quizTotal > 0 ? (int) round(($correctCount / $quizTotal) * 100) : 0;
+                    $quizDone    = $quizTotal > 0 && $correctCount >= $quizTotal;
+                    $completed   = $progress?->status === 'completed' || ($progress !== null && $labTotal === 0 && $quizDone);
+
+                    $status   = match (true) {
+                        $completed                           => 'completed',
+                        $progress?->status === 'in_progress' => 'in_progress',
+                        $previousCompleted                   => 'available',
+                        default                              => 'locked',
+                    };
+
+                    $module->setAttribute('practicum_status', $status);
+                    $module->setAttribute('practicum_progress', $progress);
+                    $module->setAttribute('learning_progress_percent', $completed ? 100 : $quizPercent);
+                    $module->setAttribute('quiz_correct_count', $correctCount);
+                    $previousCompleted = $completed;
+
+                    return $module;
+                })
+        );
+
+        return $course;
     }
 }

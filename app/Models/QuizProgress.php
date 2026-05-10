@@ -5,16 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class QuestionProgress extends Model
+class QuizProgress extends Model
 {
-    protected $table = 'lab_progresses';
+    protected $table = 'quiz_progresses';
 
     protected $fillable = [
         'user_id',
-        'lab_question_id',
-        'submitted_code',
-        'stdout',
-        'stderr',
+        'question_id',
+        'selected_option',
         'is_correct',
     ];
 
@@ -27,8 +25,8 @@ class QuestionProgress extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function labQuestion(): BelongsTo
+    public function question(): BelongsTo
     {
-        return $this->belongsTo(LabQuestion::class, 'lab_question_id', 'id_question');
+        return $this->belongsTo(Question::class, 'question_id', 'id_question');
     }
 }

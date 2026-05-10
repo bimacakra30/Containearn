@@ -62,11 +62,13 @@
                         @php
                         $status = $module->practicum_status;
                         $progress = $module->practicum_progress;
-                        $progressPercent = $progress?->status === 'completed'
-                            ? 100
-                            : ($module->questions_count > 0 && $progress
-                                ? (int) round((($progress->current_question_index ?? 0) / $module->questions_count) * 100)
-                                : 0);
+                        $progressPercent = (int) ($module->learning_progress_percent ?? (
+                            $progress?->status === 'completed'
+                                ? 100
+                                : ($module->questions_count > 0 && $progress
+                                    ? (int) round((($progress->current_question_index ?? 0) / $module->questions_count) * 100)
+                                    : 0)
+                        ));
                         $runtime = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python')
                             ? 'Python'
                             : (\Illuminate\Support\Str::contains(strtolower($course->docker_image), 'mysql') ? 'SQL' : 'General');
@@ -80,6 +82,9 @@
                                         <span class="chip">{{ $module->time_limit }} min</span>
                                         <span class="chip">{{ $module->questions_count }} questions</span>
                                         <span class="chip">{{ $runtime }}</span>
+                                        @if ($module->material_pdf_path)
+                                            <span class="chip">PDF Materi</span>
+                                        @endif
                                     </div>
 
                                     <div class="mt-4">
@@ -112,7 +117,7 @@
                                     </div>
                                 </div>
 
-                                <div class="xl:w-[180px] xl:shrink-0 xl:self-center">
+                                <div class="space-y-2 xl:w-[180px] xl:shrink-0 xl:self-center">
                                     @if ($status === 'completed')
                                     <a
                                         href="{{ route('mahasiswa.content.show', $module) }}"

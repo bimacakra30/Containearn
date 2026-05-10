@@ -1,6 +1,9 @@
 @extends('layouts.master')
 
 @section('content')
+@include('mahasiswa.practicum.learning-show')
+
+@if (false)
 <div class="app-shell {{ $isCompleted ? '' : 'overflow-hidden' }}">
     <div class="mx-auto h-full max-w-[1880px]">
         <main class="{{ $isCompleted ? 'space-y-6 fade-in' : 'flex h-full min-h-0 flex-col gap-4 fade-in' }}">
@@ -252,8 +255,10 @@
         </main>
     </div>
 </div>
+@endif
 @endsection
 
+@if (false)
 @push('scripts')
 <style>
     #monaco-editor,
@@ -270,3 +275,4 @@
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 @vite('resources/js/practicum.js')
 @endpush
+@endif

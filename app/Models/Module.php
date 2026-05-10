@@ -16,6 +16,7 @@ class Module extends Model
         'id_course',
         'title',
         'description',
+        'material_pdf_path',
         'time_limit',
     ];
 
@@ -26,7 +27,12 @@ class Module extends Model
 
     public function questions(): HasMany
     {
-        return $this->hasMany(Question::class, 'id_module', 'id_module');
+        return $this->hasMany(Question::class, 'id_module', 'id_module')->orderBy('order');
+    }
+
+    public function labQuestions(): HasMany
+    {
+        return $this->hasMany(LabQuestion::class, 'id_module', 'id_module')->orderBy('id_question');
     }
 
     public function progresses(): HasMany
