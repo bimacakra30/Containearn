@@ -4,6 +4,8 @@
 @php
     $courseCount = $courses->count();
     $moduleCount = $courses->sum(fn ($course) => $course->modules->count());
+    $quizCount = $questionCount ?? 0;
+    $labCount = $labQuestionCount ?? 0;
     $createCourseOpen = old('form_scope') === 'course_create';
 @endphp
 
@@ -51,7 +53,8 @@
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <p class="eyebrow">Content Structure</p>
-                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">Courses, modules, and questions</h2>
+                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">Courses, modules, quiz, and lab</h2>
+                            <p class="mt-2 text-sm text-slate-500">{{ $courseCount }} courses, {{ $moduleCount }} modules, {{ $quizCount }} quiz questions, {{ $labCount }} lab questions</p>
                         </div>
 
                         <button
@@ -463,8 +466,10 @@
                                     @php
                                         $moduleHasContext = (int) old('module_context_id') === $module->id_module;
                                         $moduleEditOpen = old('form_scope') === 'module_edit' && $moduleHasContext;
-                                        $questionCreateOpen = old('form_scope') === 'question_create' && $moduleHasContext;
-                                        $moduleOpen = $moduleHasContext || $moduleEditOpen || $questionCreateOpen;
+                                        $questionCreateOpen = old('form_scope') === 'quiz_create' && $moduleHasContext;
+                                        $labCreateOpen = old('form_scope') === 'lab_create' && $moduleHasContext;
+                                        $moduleOpen = $moduleHasContext || $moduleEditOpen || $questionCreateOpen || $labCreateOpen;
+                                        $nextQuizOrder = ((int) $module->questions->max('order')) + 1;
                                     @endphp
 
                                     <div
@@ -472,6 +477,7 @@
                                             open: @js($moduleOpen),
                                             moduleEditOpen: @js($moduleEditOpen),
                                             questionCreateOpen: @js($questionCreateOpen),
+                                            labCreateOpen: @js($labCreateOpen),
                                         }"
                                         class="surface-muted"
                                     >
@@ -486,7 +492,10 @@
                                                         Module #{{ $module->id_module }}
                                                     </span>
                                                     <span class="chip bg-emerald-50 text-emerald-700 border-emerald-100">
-                                                        {{ $module->questions->count() }} questions
+                                                        {{ $module->questions->count() }} quiz
+                                                    </span>
+                                                    <span class="chip bg-amber-50 text-amber-700 border-amber-100">
+                                                        {{ $module->labQuestions->count() }} lab
                                                     </span>
                                                     <span class="chip bg-amber-50 text-amber-700 border-amber-100">
                                                         {{ $module->time_limit }} minutes
@@ -513,13 +522,19 @@
                                                 @endif
                                                 <button
                                                     type="button"
-                                                    @click="open = true; questionCreateOpen = true; moduleEditOpen = false"
+                                                    @click="open = true; questionCreateOpen = true; labCreateOpen = false; moduleEditOpen = false"
                                                     class="btn-secondary px-4 py-2 text-xs">
-                                                    Add Materi
+                                                    Add Quiz
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    @click="open = true; moduleEditOpen = true; questionCreateOpen = false"
+                                                    @click="open = true; labCreateOpen = true; questionCreateOpen = false; moduleEditOpen = false"
+                                                    class="btn-secondary px-4 py-2 text-xs">
+                                                    Add Lab
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    @click="open = true; moduleEditOpen = true; questionCreateOpen = false; labCreateOpen = false"
                                                     class="btn-secondary px-4 py-2 text-xs">
                                                     Edit Module
                                                 </button>
@@ -569,7 +584,7 @@
                                                     x-transition:leave="ease-in duration-150"
                                                     x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                                                     x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-                                                    class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto p-6 shadow-2xl"
+                                                    class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-4xl overflow-y-auto p-6 shadow-2xl"
                                                 >
                                                     <div class="mb-5 flex items-start justify-between gap-4">
                                                         <div>
@@ -712,9 +727,9 @@
                                                 >
                                                     <div class="mb-5 flex items-start justify-between gap-4">
                                                         <div>
-                                                            <p class="eyebrow">Add Materi</p>
+                                                            <p class="eyebrow">Add Quiz</p>
                                                             <h3 class="font-display text-xl text-slate-900">{{ $module->title }}</h3>
-                                                            <p class="mt-1 text-sm text-slate-500">Add a question and its expected output.</p>
+                                                            <p class="mt-1 text-sm text-slate-500">Create a multiple choice question for this module.</p>
                                                         </div>
 
                                                         <button
@@ -731,32 +746,65 @@
                                                         class="grid gap-4"
                                                     >
                                                         @csrf
-                                                        <input type="hidden" name="form_scope" value="question_create">
+                                                        <input type="hidden" name="form_scope" value="quiz_create">
                                                         <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
                                                         <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
 
-                                                        <div>
-                                                            <label class="form-label">Question</label>
-                                                            <textarea
-                                                                name="question"
-                                                                rows="4"
-                                                                class="form-input">{{ $questionCreateOpen ? old('question') : '' }}</textarea>
-                                                            @if ($questionCreateOpen)
-                                                                @error('question')
-                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
-                                                                @enderror
-                                                            @endif
+                                                        <div class="grid gap-4 md:grid-cols-[1fr,140px]">
+                                                            <div>
+                                                                <label class="form-label">Question</label>
+                                                                <textarea
+                                                                    name="question"
+                                                                    rows="3"
+                                                                    class="form-input">{{ $questionCreateOpen ? old('question') : '' }}</textarea>
+                                                                @if ($questionCreateOpen)
+                                                                    @error('question')
+                                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                    @enderror
+                                                                @endif
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Order</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    name="order"
+                                                                    value="{{ $questionCreateOpen ? old('order', $nextQuizOrder) : $nextQuizOrder }}"
+                                                                    class="form-input">
+                                                                @if ($questionCreateOpen)
+                                                                    @error('order')
+                                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                    @enderror
+                                                                @endif
+                                                            </div>
                                                         </div>
 
-                                                        <div>
-                                                            <label class="form-label">Expected Output</label>
-                                                            <textarea
-                                                                name="output"
-                                                                rows="4"
-                                                                class="form-input">{{ $questionCreateOpen ? old('output') : '' }}</textarea>
+                                                        <div class="grid gap-3 md:grid-cols-2">
+                                                            @foreach (['a' => 'A', 'b' => 'B', 'c' => 'C', 'd' => 'D'] as $key => $label)
+                                                                <div class="surface-subtle px-4 py-3">
+                                                                    <div class="mb-2 flex items-center justify-between gap-3">
+                                                                        <label class="form-label mb-0">Option {{ $label }}</label>
+                                                                        <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                                                            <input type="radio" name="correct_option" value="{{ $key }}" class="h-4 w-4 border-slate-300 text-slate-900" @checked(old('correct_option', 'a') === $key)>
+                                                                            Correct
+                                                                        </label>
+                                                                    </div>
+                                                                    <input
+                                                                        type="text"
+                                                                        name="option_{{ $key }}"
+                                                                        value="{{ $questionCreateOpen ? old('option_' . $key) : '' }}"
+                                                                        class="form-input">
+                                                                    @if ($questionCreateOpen)
+                                                                        @error('option_' . $key)
+                                                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                        @enderror
+                                                                    @endif
+                                                                </div>
+                                                            @endforeach
                                                             @if ($questionCreateOpen)
-                                                                @error('output')
-                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                @error('correct_option')
+                                                                    <p class="text-xs text-rose-500 md:col-span-2">{{ $message }}</p>
                                                                 @enderror
                                                             @endif
                                                         </div>
@@ -771,7 +819,7 @@
                                                             <button
                                                                 type="submit"
                                                                 class="btn-primary px-5 py-2.5">
-                                                                Save Materi
+                                                                Save Quiz
                                                             </button>
                                                         </div>
                                                     </form>
@@ -779,11 +827,122 @@
                                                 </div>
                                             </template>
 
-                                            <div class="space-y-3">
+                                            <template x-teleport="body">
+                                                <div
+                                                    x-show="labCreateOpen"
+                                                x-cloak
+                                                x-transition:enter="ease-out duration-200"
+                                                x-transition:enter-start="opacity-0"
+                                                x-transition:enter-end="opacity-100"
+                                                x-transition:leave="ease-in duration-150"
+                                                x-transition:leave-start="opacity-100"
+                                                x-transition:leave-end="opacity-0"
+                                                @keydown.escape.window="labCreateOpen = false"
+                                                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-6 sm:items-center"
+                                            >
+                                                <div
+                                                    class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                                                    @click="labCreateOpen = false"
+                                                ></div>
+
+                                                <div
+                                                    x-show="labCreateOpen"
+                                                    x-transition:enter="ease-out duration-200"
+                                                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                                                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                                    x-transition:leave="ease-in duration-150"
+                                                    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                                    x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+                                                    class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto p-6 shadow-2xl"
+                                                >
+                                                    <div class="mb-5 flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <p class="eyebrow">Add Lab</p>
+                                                            <h3 class="font-display text-xl text-slate-900">{{ $module->title }}</h3>
+                                                            <p class="mt-1 text-sm text-slate-500">Create a coding practice question and expected output.</p>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            @click="labCreateOpen = false"
+                                                            class="btn-secondary px-3 py-2 text-xs">
+                                                            Close
+                                                        </button>
+                                                    </div>
+
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('admin.contents.lab-questions.store', $module) }}"
+                                                        class="grid gap-4"
+                                                    >
+                                                        @csrf
+                                                        <input type="hidden" name="form_scope" value="lab_create">
+                                                        <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
+                                                        <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
+
+                                                        <div>
+                                                            <label class="form-label">Lab Question</label>
+                                                            <textarea
+                                                                name="question"
+                                                                rows="4"
+                                                                class="form-input">{{ $labCreateOpen ? old('question') : '' }}</textarea>
+                                                            @if ($labCreateOpen)
+                                                                @error('question')
+                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                @enderror
+                                                            @endif
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Expected Output</label>
+                                                            <textarea
+                                                                name="output"
+                                                                rows="4"
+                                                                class="form-input font-mono">{{ $labCreateOpen ? old('output') : '' }}</textarea>
+                                                            @if ($labCreateOpen)
+                                                                @error('output')
+                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                @enderror
+                                                            @endif
+                                                        </div>
+
+                                                        <div class="flex justify-end gap-3">
+                                                            <button
+                                                                type="button"
+                                                                @click="labCreateOpen = false"
+                                                                class="btn-secondary px-5 py-2.5">
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                type="submit"
+                                                                class="btn-primary px-5 py-2.5">
+                                                                Save Lab
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                                </div>
+                                            </template>
+
+                                            <div class="grid gap-5 xl:grid-cols-2">
+                                                <div class="space-y-3">
+                                                    <div class="flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p class="eyebrow">Quiz Questions</p>
+                                                            <h5 class="mt-1 font-semibold text-slate-900">Multiple choice</h5>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            @click="questionCreateOpen = true; labCreateOpen = false"
+                                                            class="btn-secondary px-4 py-2 text-xs">
+                                                            Add Quiz
+                                                        </button>
+                                                    </div>
                                                 @forelse ($module->questions as $question)
                                                     @php
                                                         $questionHasContext = (int) old('question_context_id') === $question->id_question;
-                                                        $questionEditOpen = old('form_scope') === 'question_edit' && $questionHasContext;
+                                                        $questionEditOpen = old('form_scope') === 'quiz_edit' && $questionHasContext;
+                                                        $options = ['a' => $question->option_a, 'b' => $question->option_b, 'c' => $question->option_c, 'd' => $question->option_d];
                                                     @endphp
 
                                                     <div
@@ -792,16 +951,23 @@
                                                     >
                                                         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                                             <div class="space-y-2 min-w-0">
-                                                                <span class="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white">
-                                                                    Question #{{ $loop->iteration }}
-                                                                </span>
+                                                                <div class="flex flex-wrap items-center gap-2">
+                                                                    <span class="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white">
+                                                                        Quiz #{{ $loop->iteration }}
+                                                                    </span>
+                                                                    <span class="chip">Order {{ $question->order }}</span>
+                                                                    <span class="chip bg-emerald-50 text-emerald-700 border-emerald-100">Answer {{ strtoupper($question->correct_option) }}</span>
+                                                                </div>
                                                                 <p class="text-sm font-medium leading-6 text-slate-800">{{ $question->question }}</p>
                                                             </div>
 
                                                             <div class="w-full space-y-3 lg:max-w-md">
-                                                                <div>
-                                                                    <p class="eyebrow">Expected Output</p>
-                                                                    <p class="mt-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-slate-700 whitespace-pre-wrap">{{ $question->output }}</p>
+                                                                <div class="grid gap-2">
+                                                                    @foreach ($options as $key => $option)
+                                                                        <p class="rounded-[14px] border px-3 py-2 text-sm {{ $question->correct_option === $key ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600' }}">
+                                                                            <span class="font-semibold">{{ strtoupper($key) }}.</span> {{ $option }}
+                                                                        </p>
+                                                                    @endforeach
                                                                 </div>
 
                                                                 <div class="flex flex-wrap justify-end gap-2">
@@ -813,7 +979,7 @@
                                                                     </button>
                                                                     <button
                                                                         type="button"
-                                                                        @click="openDeleteModal(@js(route('admin.contents.questions.destroy', $question)), @js('question #' . $loop->iteration . ' in &quot;' . $module->title . '&quot;'))"
+                                                                        @click="openDeleteModal(@js(route('admin.contents.questions.destroy', $question)), @js('quiz #' . $loop->iteration . ' in &quot;' . $module->title . '&quot;'))"
                                                                         class="inline-flex items-center justify-center rounded-[14px] bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
                                                                         Delete
                                                                     </button>
@@ -847,12 +1013,12 @@
                                                                 x-transition:leave="ease-in duration-150"
                                                                 x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                                                                 x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-                                                                class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto p-6 shadow-2xl"
+                                                                class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-4xl overflow-y-auto p-6 shadow-2xl"
                                                             >
                                                                 <div class="mb-5 flex items-start justify-between gap-4">
                                                                     <div>
-                                                                        <p class="eyebrow">Edit Materi</p>
-                                                                        <h3 class="font-display text-xl text-slate-900">Question #{{ $loop->iteration }}</h3>
+                                                                        <p class="eyebrow">Edit Quiz</p>
+                                                                        <h3 class="font-display text-xl text-slate-900">Quiz #{{ $loop->iteration }}</h3>
                                                                         <p class="mt-1 text-sm text-slate-500">{{ $module->title }}</p>
                                                                     </div>
 
@@ -871,33 +1037,66 @@
                                                                 >
                                                                     @csrf
                                                                     @method('PATCH')
-                                                                    <input type="hidden" name="form_scope" value="question_edit">
+                                                                    <input type="hidden" name="form_scope" value="quiz_edit">
                                                                     <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
                                                                     <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
                                                                     <input type="hidden" name="question_context_id" value="{{ $question->id_question }}">
 
-                                                                    <div>
-                                                                        <label class="form-label">Question</label>
-                                                                        <textarea
-                                                                            name="question"
-                                                                            rows="4"
-                                                                            class="form-input">{{ $questionEditOpen ? old('question', $question->question) : $question->question }}</textarea>
-                                                                        @if ($questionEditOpen)
-                                                                            @error('question')
-                                                                                <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
-                                                                            @enderror
-                                                                        @endif
+                                                                    <div class="grid gap-4 md:grid-cols-[1fr,140px]">
+                                                                        <div>
+                                                                            <label class="form-label">Question</label>
+                                                                            <textarea
+                                                                                name="question"
+                                                                                rows="3"
+                                                                                class="form-input">{{ $questionEditOpen ? old('question', $question->question) : $question->question }}</textarea>
+                                                                            @if ($questionEditOpen)
+                                                                                @error('question')
+                                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                                @enderror
+                                                                            @endif
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label class="form-label">Order</label>
+                                                                            <input
+                                                                                type="number"
+                                                                                min="0"
+                                                                                name="order"
+                                                                                value="{{ $questionEditOpen ? old('order', $question->order) : $question->order }}"
+                                                                                class="form-input">
+                                                                            @if ($questionEditOpen)
+                                                                                @error('order')
+                                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                                @enderror
+                                                                            @endif
+                                                                        </div>
                                                                     </div>
 
-                                                                    <div>
-                                                                        <label class="form-label">Expected Output</label>
-                                                                        <textarea
-                                                                            name="output"
-                                                                            rows="4"
-                                                                            class="form-input">{{ $questionEditOpen ? old('output', $question->output) : $question->output }}</textarea>
+                                                                    <div class="grid gap-3 md:grid-cols-2">
+                                                                        @foreach (['a' => 'A', 'b' => 'B', 'c' => 'C', 'd' => 'D'] as $key => $label)
+                                                                            <div class="surface-subtle px-4 py-3">
+                                                                                <div class="mb-2 flex items-center justify-between gap-3">
+                                                                                    <label class="form-label mb-0">Option {{ $label }}</label>
+                                                                                    <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                                                                        <input type="radio" name="correct_option" value="{{ $key }}" class="h-4 w-4 border-slate-300 text-slate-900" @checked(old('correct_option', $question->correct_option) === $key)>
+                                                                                        Correct
+                                                                                    </label>
+                                                                                </div>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    name="option_{{ $key }}"
+                                                                                    value="{{ $questionEditOpen ? old('option_' . $key, $options[$key]) : $options[$key] }}"
+                                                                                    class="form-input">
+                                                                                @if ($questionEditOpen)
+                                                                                    @error('option_' . $key)
+                                                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                                    @enderror
+                                                                                @endif
+                                                                            </div>
+                                                                        @endforeach
                                                                         @if ($questionEditOpen)
-                                                                            @error('output')
-                                                                                <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                            @error('correct_option')
+                                                                                <p class="text-xs text-rose-500 md:col-span-2">{{ $message }}</p>
                                                                             @enderror
                                                                         @endif
                                                                     </div>
@@ -912,7 +1111,7 @@
                                                                         <button
                                                                             type="submit"
                                                                             class="btn-primary px-5 py-2.5">
-                                                                            Update Materi
+                                                                            Update Quiz
                                                                         </button>
                                                                     </div>
                                                                 </form>
@@ -922,10 +1121,171 @@
                                                     </div>
                                                 @empty
                                                     <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-                                                        No questions have been added to this module yet.
+                                                        No quiz questions have been added to this module yet.
                                                     </div>
                                                 @endforelse
                                             </div>
+
+                                                <div class="space-y-3">
+                                                    <div class="flex items-center justify-between gap-3">
+                                                        <div>
+                                                            <p class="eyebrow">Lab Questions</p>
+                                                            <h5 class="mt-1 font-semibold text-slate-900">Coding practice</h5>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            @click="labCreateOpen = true; questionCreateOpen = false"
+                                                            class="btn-secondary px-4 py-2 text-xs">
+                                                            Add Lab
+                                                        </button>
+                                                    </div>
+
+                                                    @forelse ($module->labQuestions as $labQuestion)
+                                                        @php
+                                                            $labQuestionHasContext = (int) old('question_context_id') === $labQuestion->id_question;
+                                                            $labEditOpen = old('form_scope') === 'lab_edit' && $labQuestionHasContext;
+                                                        @endphp
+
+                                                        <div
+                                                            x-data="{ labEditOpen: @js($labEditOpen) }"
+                                                            class="surface-subtle px-4 py-4"
+                                                        >
+                                                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                                <div class="space-y-2 min-w-0">
+                                                                    <span class="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white">
+                                                                        Lab #{{ $loop->iteration }}
+                                                                    </span>
+                                                                    <p class="text-sm font-medium leading-6 text-slate-800">{{ $labQuestion->question }}</p>
+                                                                </div>
+
+                                                                <div class="w-full space-y-3 lg:max-w-md">
+                                                                    <div>
+                                                                        <p class="eyebrow">Expected Output</p>
+                                                                        <p class="mt-2 rounded-[14px] border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-slate-700 whitespace-pre-wrap">{{ $labQuestion->output }}</p>
+                                                                    </div>
+
+                                                                    <div class="flex flex-wrap justify-end gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            @click="labEditOpen = true"
+                                                                            class="btn-secondary px-4 py-2 text-xs">
+                                                                            Edit
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            @click="openDeleteModal(@js(route('admin.contents.lab-questions.destroy', $labQuestion)), @js('lab #' . $loop->iteration . ' in &quot;' . $module->title . '&quot;'))"
+                                                                            class="inline-flex items-center justify-center rounded-[14px] bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
+                                                                            Delete
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <template x-teleport="body">
+                                                                <div
+                                                                    x-show="labEditOpen"
+                                                                x-cloak
+                                                                x-transition:enter="ease-out duration-200"
+                                                                x-transition:enter-start="opacity-0"
+                                                                x-transition:enter-end="opacity-100"
+                                                                x-transition:leave="ease-in duration-150"
+                                                                x-transition:leave-start="opacity-100"
+                                                                x-transition:leave-end="opacity-0"
+                                                                @keydown.escape.window="labEditOpen = false"
+                                                                class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-6 sm:items-center"
+                                                            >
+                                                                <div
+                                                                    class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                                                                    @click="labEditOpen = false"
+                                                                ></div>
+
+                                                                <div
+                                                                    x-show="labEditOpen"
+                                                                    x-transition:enter="ease-out duration-200"
+                                                                    x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                                                                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                                                    x-transition:leave="ease-in duration-150"
+                                                                    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                                                    x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+                                                                    class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto p-6 shadow-2xl"
+                                                                >
+                                                                    <div class="mb-5 flex items-start justify-between gap-4">
+                                                                        <div>
+                                                                            <p class="eyebrow">Edit Lab</p>
+                                                                            <h3 class="font-display text-xl text-slate-900">Lab #{{ $loop->iteration }}</h3>
+                                                                            <p class="mt-1 text-sm text-slate-500">{{ $module->title }}</p>
+                                                                        </div>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            @click="labEditOpen = false"
+                                                                            class="btn-secondary px-3 py-2 text-xs">
+                                                                            Close
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <form
+                                                                        method="POST"
+                                                                        action="{{ route('admin.contents.lab-questions.update', $labQuestion) }}"
+                                                                        class="grid gap-4"
+                                                                    >
+                                                                        @csrf
+                                                                        @method('PATCH')
+                                                                        <input type="hidden" name="form_scope" value="lab_edit">
+                                                                        <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
+                                                                        <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
+                                                                        <input type="hidden" name="question_context_id" value="{{ $labQuestion->id_question }}">
+
+                                                                        <div>
+                                                                            <label class="form-label">Lab Question</label>
+                                                                            <textarea
+                                                                                name="question"
+                                                                                rows="4"
+                                                                                class="form-input">{{ $labEditOpen ? old('question', $labQuestion->question) : $labQuestion->question }}</textarea>
+                                                                            @if ($labEditOpen)
+                                                                                @error('question')
+                                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                                @enderror
+                                                                            @endif
+                                                                        </div>
+
+                                                                        <div>
+                                                                            <label class="form-label">Expected Output</label>
+                                                                            <textarea
+                                                                                name="output"
+                                                                                rows="4"
+                                                                                class="form-input font-mono">{{ $labEditOpen ? old('output', $labQuestion->output) : $labQuestion->output }}</textarea>
+                                                                            @if ($labEditOpen)
+                                                                                @error('output')
+                                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                                @enderror
+                                                                            @endif
+                                                                        </div>
+
+                                                                        <div class="flex justify-end gap-3">
+                                                                            <button
+                                                                                type="button"
+                                                                                @click="labEditOpen = false"
+                                                                                class="btn-secondary px-5 py-2.5">
+                                                                                Cancel
+                                                                            </button>
+                                                                            <button
+                                                                                type="submit"
+                                                                                class="btn-primary px-5 py-2.5">
+                                                                                Update Lab
+                                                                            </button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    @empty
+                                                        <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                                                            No lab questions have been added to this module yet.
+                                                        </div>
+                                                    @endforelse
+                                                </div>
                                         </div>
                                     </div>
                                 @empty

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\LabQuestion;
 use App\Models\Module;
 use App\Models\Question;
 use App\Models\User;
@@ -20,7 +21,10 @@ class PracticumContentController extends Controller
         $courses = Course::query()
             ->with([
                 'modules' => fn ($query) => $query
-                    ->with(['questions' => fn ($questionQuery) => $questionQuery->orderBy('id_question')])
+                    ->with([
+                        'questions' => fn ($questionQuery) => $questionQuery->orderBy('order')->orderBy('id_question'),
+                        'labQuestions' => fn ($questionQuery) => $questionQuery->orderBy('id_question'),
+                    ])
                     ->orderBy('id_module'),
             ])
             ->withCount('modules')
@@ -30,10 +34,14 @@ class PracticumContentController extends Controller
         $questionCount = $courses->sum(
             fn (Course $course) => $course->modules->sum(fn ($module) => $module->questions->count())
         );
+        $labQuestionCount = $courses->sum(
+            fn (Course $course) => $course->modules->sum(fn ($module) => $module->labQuestions->count())
+        );
 
         return view('admin.contents', [
             'courses' => $courses,
             'questionCount' => $questionCount,
+            'labQuestionCount' => $labQuestionCount,
         ]);
     }
 
@@ -102,10 +110,13 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $module->questions()->create($this->validateQuestion($request));
+        $payload = $this->validateQuestion($request);
+        $payload['order'] ??= ((int) $module->questions()->max('order')) + 1;
+
+        $module->questions()->create($payload);
 
         return redirect()->route('admin.contents.index')
-            ->with('success', 'Question created successfully.');
+            ->with('success', 'Quiz question created successfully.');
     }
 
     public function updateQuestion(Request $request, Question $question): RedirectResponse
@@ -115,7 +126,7 @@ class PracticumContentController extends Controller
         $question->update($this->validateQuestion($request));
 
         return redirect()->route('admin.contents.index')
-            ->with('success', 'Question updated successfully.');
+            ->with('success', 'Quiz question updated successfully.');
     }
 
     public function destroyQuestion(Request $request, Question $question): RedirectResponse
@@ -125,7 +136,37 @@ class PracticumContentController extends Controller
         $question->delete();
 
         return redirect()->route('admin.contents.index')
-            ->with('success', 'Question deleted successfully.');
+            ->with('success', 'Quiz question deleted successfully.');
+    }
+
+    public function storeLabQuestion(Request $request, Module $module): RedirectResponse
+    {
+        $this->authorizeAdminAccess($request);
+
+        $module->labQuestions()->create($this->validateLabQuestion($request));
+
+        return redirect()->route('admin.contents.index')
+            ->with('success', 'Lab question created successfully.');
+    }
+
+    public function updateLabQuestion(Request $request, LabQuestion $labQuestion): RedirectResponse
+    {
+        $this->authorizeAdminAccess($request);
+
+        $labQuestion->update($this->validateLabQuestion($request));
+
+        return redirect()->route('admin.contents.index')
+            ->with('success', 'Lab question updated successfully.');
+    }
+
+    public function destroyLabQuestion(Request $request, LabQuestion $labQuestion): RedirectResponse
+    {
+        $this->authorizeAdminAccess($request);
+
+        $labQuestion->delete();
+
+        return redirect()->route('admin.contents.index')
+            ->with('success', 'Lab question deleted successfully.');
     }
 
     private function authorizeAdminAccess(Request $request): User
@@ -187,6 +228,38 @@ class PracticumContentController extends Controller
     }
 
     private function validateQuestion(Request $request): array
+    {
+        $validated = $request->validate([
+            'question' => ['required', 'string'],
+            'option_a' => ['required', 'string', 'max:255'],
+            'option_b' => ['required', 'string', 'max:255'],
+            'option_c' => ['required', 'string', 'max:255'],
+            'option_d' => ['required', 'string', 'max:255'],
+            'correct_option' => ['required', 'in:a,b,c,d'],
+            'order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'form_scope' => ['nullable', 'string'],
+            'course_context_id' => ['nullable', 'integer'],
+            'module_context_id' => ['nullable', 'integer'],
+            'question_context_id' => ['nullable', 'integer'],
+        ]);
+
+        $payload = [
+            'question' => $validated['question'],
+            'option_a' => $validated['option_a'],
+            'option_b' => $validated['option_b'],
+            'option_c' => $validated['option_c'],
+            'option_d' => $validated['option_d'],
+            'correct_option' => $validated['correct_option'],
+        ];
+
+        if (array_key_exists('order', $validated) && $validated['order'] !== null) {
+            $payload['order'] = $validated['order'];
+        }
+
+        return $payload;
+    }
+
+    private function validateLabQuestion(Request $request): array
     {
         $validated = $request->validate([
             'question' => ['required', 'string'],

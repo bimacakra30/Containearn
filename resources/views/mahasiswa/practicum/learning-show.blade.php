@@ -16,8 +16,8 @@
     $steps = [
         [
             'key'   => 'material',
-            'label' => 'Materi',
-            'meta'  => $materialUrl ? 'PDF tersedia' : 'Belum ada PDF',
+            'label' => 'Learning Materials',
+            'meta'  => $materialUrl ? 'PDF available' : 'No PDF available',
             'done'  => (bool) $materialUrl,
             'href'  => route('mahasiswa.content.show', ['module' => $module, 'view' => 'material']),
         ],
@@ -43,7 +43,7 @@
     $steps[] = [
         'key'   => 'summary',
         'label' => 'Summary',
-        'meta'  => $canOpenSummary ? 'Siap dilihat' : ($quizAllCorrect ? 'Selesaikan praktikum' : 'Selesaikan quiz'),
+        'meta'  => $canOpenSummary ? 'Ready to be seen' : ($quizAllCorrect ? 'Complete the practicum' : 'Complete the quiz'),
         'done'  => $isCompleted,
         'href'  => route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary']),
     ];
@@ -178,8 +178,8 @@
                         <section class="space-y-4">
                             <div class="rounded-[18px] border border-slate-200 bg-white px-6 py-5">
                                 <p class="eyebrow">Module Quiz</p>
-                                <h3 class="mt-1 text-2xl font-semibold text-slate-950">Jawab semua pertanyaan dengan benar untuk lanjut.</h3>
-                                <p class="mt-1 text-sm text-slate-500">{{ $correctCount }} dari {{ $quizTotal }} pertanyaan sudah benar.</p>
+                                <h3 class="mt-1 text-2xl font-semibold text-slate-950">Answer all questions correctly to continue.</h3>
+                                <p class="mt-1 text-sm text-slate-500">{{ $correctCount }} from {{ $quizTotal }} questions are correct.</p>
                             </div>
 
                             @forelse ($quizQuestions as $question)
@@ -197,7 +197,7 @@
                                         </div>
                                         @if ($selected)
                                             <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {{ $isCorrect ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600' }}">
-                                                {{ $isCorrect ? '✓ Benar' : '✗ Salah' }}
+                                                {{ $isCorrect ? '✓ Correct' : '✗ Incorrect' }}
                                             </span>
                                         @endif
                                     </div>
@@ -245,12 +245,12 @@
 
                             @if ($quizAllCorrect)
                                 <div class="rounded-[18px] border border-emerald-200 bg-emerald-50 p-6 text-center">
-                                    <p class="text-lg font-semibold text-emerald-800">Semua jawaban benar! 🎉</p>
+                                    <p class="text-lg font-semibold text-emerald-800">All answers are correct! 🎉</p>
                                     <p class="mt-1 text-sm text-emerald-600">
                                         @if ($hasLab)
-                                            Kamu bisa lanjut ke Praktikum sekarang.
+                                            You can now proceed to the practicum.
                                         @else
-                                            Kamu bisa melihat Summary sekarang.
+                                            You can now view the summary.
                                         @endif
                                     </p>
                                     <div class="mt-4">
@@ -270,10 +270,10 @@
                             <div class="mx-auto max-w-3xl text-center">
                                 <p class="eyebrow">{{ $canOpenSummary ? 'Completed' : 'Locked' }}</p>
                                 <h3 class="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950">
-                                    {{ $canOpenSummary ? 'Module selesai.' : 'Summary terbuka setelah semua quiz benar.' }}
+                                    {{ $canOpenSummary ? 'Module completed.' : 'Summary unlocked after all quizzes are correct.' }}
                                 </h3>
                                 <p class="mt-3 text-sm leading-7 text-slate-500">
-                                    {{ $canOpenSummary ? 'Kamu sudah menyelesaikan seluruh pertanyaan pada module ini.' : 'Kerjakan semua soal quiz dengan benar untuk membuka summary.' }}
+                                    {{ $canOpenSummary ? 'You have completed all questions for this module.' : 'Complete all quiz questions correctly to unlock the summary.' }}
                                 </p>
                                 <div class="mt-6 flex justify-center gap-3">
                                     <a href="{{ route('mahasiswa.content.index') }}" class="btn-secondary">Back to Content</a>
