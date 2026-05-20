@@ -11,15 +11,6 @@
 
             <main class="app-main fade-in">
                 <x-app-header />
-                <header class="glass p-8 lg:p-10">
-                    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr),280px]">
-                        <div>
-                            <p class="eyebrow">Practicum</p>
-                            <h1 class="page-title">Practicum Content</h1>
-                        </div>
-                    </div>
-                </header>
-
                 <div class="space-y-4">
                     <x-alert-success />
 
@@ -40,7 +31,20 @@
                 @php
                 $courseLabel = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python') ? 'Python Lab' : 'Interactive Lab';
                 @endphp
-                <section class="glass p-7 sm:p-8 space-y-6">
+                <section
+                    class="glass p-7 sm:p-8 space-y-6"
+                    x-data="{
+                        storageKey: 'containearn.content.course.{{ $course->id_course }}.hidden',
+                        modulesHidden: true,
+                        init() {
+                            this.modulesHidden = localStorage.getItem(this.storageKey) !== 'false';
+                        },
+                        toggleModules() {
+                            this.modulesHidden = ! this.modulesHidden;
+                            localStorage.setItem(this.storageKey, this.modulesHidden ? 'true' : 'false');
+                        },
+                    }"
+                >
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <span class="chip">{{ $courseLabel }}</span>
@@ -51,13 +55,28 @@
                             </p>
                         </div>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                @click="toggleModules()"
+                                class="btn-secondary px-4 py-2 text-sm"
+                                :aria-expanded="(! modulesHidden).toString()">
+                                <span x-text="modulesHidden ? 'Show' : 'Hide'"></span>
+                            </button>
                             <span class="chip">{{ $course->modules_count }} modules</span>
                             <span class="chip">{{ $course->docker_image }}</span>
                         </div>
                     </div>
 
-                    <div class="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
+                    <div
+                        x-show="! modulesHidden"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-2"
+                        class="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
                         @foreach ($course->modules as $module)
                         @php
                         $status = $module->practicum_status;
@@ -78,13 +97,8 @@
                             <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                                        <span class="chip">Module {{ $loop->iteration }}</span>
                                         <span class="chip">{{ $module->time_limit }} min</span>
                                         <span class="chip">{{ $module->questions_count }} questions</span>
-                                        <span class="chip">{{ $runtime }}</span>
-                                        @if ($module->material_pdf_path)
-                                            <span class="chip">PDF Materi</span>
-                                        @endif
                                     </div>
 
                                     <div class="mt-4">

@@ -1,6 +1,8 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 const PAGE_LOADING_CLASS = 'page-loading';
 const DESKTOP_SIDEBAR_STORAGE_KEY = 'containearn_sidebar_hidden_v1';
@@ -11,6 +13,23 @@ const startPageLoading = () => {
 
 const stopPageLoading = () => {
     document.body.classList.remove(PAGE_LOADING_CLASS);
+};
+
+const showSwalAlert = () => {
+    const alertElement = document.querySelector('[data-swal-alert]');
+
+    if (!alertElement) {
+        return;
+    }
+
+    const config = JSON.parse(alertElement.textContent);
+
+    Swal.fire({
+        position: 'center',
+        showConfirmButton: false,
+        timer: 1500,
+        ...config,
+    });
 };
 
 const shouldHandleNavigationLink = (link, event) => {
@@ -63,7 +82,7 @@ const shouldHandleNavigationLink = (link, event) => {
 };
 
 Alpine.data('shellLayout', () => ({
-    desktopSidebarHidden: false,
+    desktopSidebarHidden: true,
     desktopSidebarPeek: false,
     mobileSidebarOpen: false,
     init() {
@@ -133,6 +152,16 @@ Alpine.data('shellLayout', () => ({
     },
 }));
 
+window.loginForm = () => ({
+    submitting: false,
+});
+
 window.Alpine = Alpine;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showSwalAlert);
+} else {
+    showSwalAlert();
+}
 
 Alpine.start();

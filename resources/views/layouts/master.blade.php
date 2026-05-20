@@ -24,6 +24,31 @@
         <div class="page-loader-bar"></div>
     </div>
     @yield('content')
+
+    @php
+        $swal = session('swal');
+
+        if (! $swal && session('success')) {
+            $swal = [
+                'icon' => 'success',
+                'title' => session('success'),
+            ];
+        }
+
+        if (! $swal && session('error')) {
+            $swal = [
+                'icon' => 'error',
+                'title' => session('error'),
+            ];
+        }
+    @endphp
+
+    @if ($swal)
+        <script type="application/json" data-swal-alert>
+            @json($swal)
+        </script>
+    @endif
+
     @stack('scripts')
 </body>
 

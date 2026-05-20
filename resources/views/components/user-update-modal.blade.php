@@ -3,6 +3,7 @@
     'action' => "''",
     'availableRoles' => [],
     'roleLabels' => [],
+    'classOptions' => [],
     'currentUserId' => null,
 ])
 
@@ -58,6 +59,19 @@
                         name="identity_id"
                         x-model="editUser.identity_id"
                         class="form-input">
+                </div>
+
+                <div x-show="editUser.role === 'mahasiswa'" x-cloak>
+                    <label class="form-label">Class</label>
+                    <select
+                        name="class"
+                        x-model="editUser.class"
+                        class="form-input">
+                        <option value="">Select class</option>
+                        @foreach ($classOptions as $class)
+                            <option value="{{ $class }}">{{ $class }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div>

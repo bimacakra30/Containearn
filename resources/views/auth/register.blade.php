@@ -99,6 +99,34 @@
                 </div>
 
                 <div class="mb-4" x-data="{ focused: false }">
+                    <label for="class"
+                        class="block text-xs font-semibold uppercase tracking-widest mb-2 transition-colors duration-200"
+                        :class="focused ? 'text-indigo-600' : 'text-slate-500'">
+                        Class
+                    </label>
+                    <select
+                        id="class"
+                        name="class"
+                        required
+                        @focus="focused = true"
+                        @blur="focused = false"
+                        class="w-full px-4 py-3 rounded-xl border text-sm text-slate-800 transition-all duration-200 outline-none
+                            {{ $errors->get('class') ? 'border-rose-400 bg-rose-50 focus:border-rose-500 focus:ring-2 focus:ring-rose-200' : 'border-slate-200 bg-white/70 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100' }}"
+                    >
+                        <option value="">Select class</option>
+                        @foreach (['A', 'B', 'C', 'D'] as $class)
+                            <option value="{{ $class }}" @selected(old('class') === $class)>{{ $class }}</option>
+                        @endforeach
+                    </select>
+                    @foreach ($errors->get('class') as $error)
+                        <p class="mt-1.5 text-xs text-rose-500 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                            {{ $error }}
+                        </p>
+                    @endforeach
+                </div>
+
+                <div class="mb-4" x-data="{ focused: false }">
                     <label for="email"
                         class="block text-xs font-semibold uppercase tracking-widest mb-2 transition-colors duration-200"
                         :class="focused ? 'text-indigo-600' : 'text-slate-500'">

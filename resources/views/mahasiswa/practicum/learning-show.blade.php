@@ -4,11 +4,6 @@
     $activeView   = in_array($activeView, $validViews, true) ? $activeView : 'material';
     $materialUrl  = $module->material_pdf_path ? route('mahasiswa.module.pdf', $module) : null;
     $quizTotal    = $quizQuestions->count();
-    $quizPercent  = $quizTotal > 0 ? (int) round(($correctCount / $quizTotal) * 100) : 100;
-    $labTotal     = $hasLab ? $questions->count() : 0;
-    $labCorrect   = $hasLab
-        ? $questions->filter(fn ($question) => (bool) data_get($state, 'answers.' . $question->id_question . '.is_correct', false))->count()
-        : 0;
 
     $editorLanguage = $editorLanguage ?? 'plaintext';
     $editorFilename = $editorFilename ?? 'answer.txt';
@@ -24,7 +19,7 @@
         [
             'key'   => 'quiz',
             'label' => 'Quiz',
-            'meta'  => $correctCount . ' / ' . $quizTotal . ' benar',
+            'meta'  => $correctCount . ' / ' . $quizTotal . ' Correct',
             'done'  => $quizAllCorrect,
             'href'  => route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']),
         ],
@@ -33,7 +28,7 @@
     if ($hasLab) {
         $steps[] = [
             'key'   => 'lab',
-            'label' => 'Praktikum',
+            'label' => 'Practicum',
             'meta'  => strtoupper($state['runtime'] ?? 'text') . ' sandbox',
             'done'  => $isCompleted,
             'href'  => route('mahasiswa.content.show', ['module' => $module, 'view' => 'lab', 'question' => $currentIndex]),
@@ -48,16 +43,11 @@
         'href'  => route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary']),
     ];
 
-    $moduleProgress = collect($steps)->avg(function ($step) use ($materialUrl, $quizTotal, $correctCount, $labTotal, $labCorrect, $isCompleted) {
-        return match ($step['key']) {
-            'material' => $materialUrl ? 100 : 0,
-            'quiz' => $quizTotal > 0 ? ($correctCount / $quizTotal) * 100 : 100,
-            'lab' => $isCompleted ? 100 : ($labTotal > 0 ? ($labCorrect / $labTotal) * 100 : 0),
-            'summary' => $isCompleted ? 100 : 0,
-            default => 0,
-        };
-    });
-    $moduleProgress = (int) round($moduleProgress ?? 0);
+    $progressSteps = collect($steps)->reject(fn ($step) => $step['key'] === 'summary');
+    $calculatedModuleProgress = $progressSteps->isNotEmpty()
+        ? (int) round(($progressSteps->where('done', true)->count() / $progressSteps->count()) * 100)
+        : 0;
+    $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
 @endphp
 
 <div class="min-h-screen bg-slate-50">
@@ -112,7 +102,7 @@
                                         <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 text-xs">🔒</span>
                                         <div>
                                             <p class="text-sm font-semibold">{{ $step['label'] }}</p>
-                                            <p class="mt-1 text-xs">{{ $isLabLocked ? 'Selesaikan quiz dulu' : $step['meta'] }}</p>
+                                            <p class="mt-1 text-xs">{{ $isLabLocked ? 'Finish the quiz first' : $step['meta'] }}</p>
                                         </div>
                                     </div>
                                 @else
@@ -136,7 +126,7 @@
                     @if ($activeView === 'lab' && !$isCompleted)
                         <div class="flex flex-col gap-3 rounded-[18px] border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div class="min-w-0">
-                                <p class="eyebrow">Praktikum</p>
+                                <p class="eyebrow">Practicum</p>
                                 <h2 class="truncate text-xl font-semibold text-slate-950">{{ $module->title }}</h2>
                             </div>
                             <div class="flex items-center gap-3">
@@ -157,7 +147,7 @@
                     @if (session('error')) <div class="notice-danger">{{ session('error') }}</div> @endif
                     @if ($errors->any()) <div class="notice-danger">{{ $errors->first() }}</div> @endif
 
-                    {{-- ── MATERIAL ── --}}
+                    
                     @if ($activeView === 'material')
                         <section class="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
                             @if ($materialUrl)
@@ -173,7 +163,7 @@
                             @endif
                         </section>
 
-                    {{-- ── QUIZ ── --}}
+                    
                     @elseif ($activeView === 'quiz')
                         <section class="space-y-4">
                             <div class="rounded-[18px] border border-slate-200 bg-white px-6 py-5">
@@ -255,16 +245,16 @@
                                     </p>
                                     <div class="mt-4">
                                         @if ($hasLab)
-                                            <a href="{{ route('mahasiswa.content.show', ['module' => $module, 'view' => 'lab']) }}" class="btn-primary">Lanjut ke Praktikum →</a>
+                                            <a href="{{ route('mahasiswa.content.show', ['module' => $module, 'view' => 'lab']) }}" class="btn-primary">Continue to Practicum →</a>
                                         @else
-                                            <a href="{{ route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary']) }}" class="btn-primary">Lihat Summary →</a>
+                                            <a href="{{ route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary']) }}" class="btn-primary">View Summary →</a>
                                         @endif
                                     </div>
                                 </div>
                             @endif
                         </section>
 
-                    {{-- ── SUMMARY ── --}}
+                    
                     @elseif ($activeView === 'summary')
                         <section class="rounded-[18px] border border-slate-200 bg-white p-8">
                             <div class="mx-auto max-w-3xl text-center">
@@ -284,7 +274,7 @@
                             </div>
                         </section>
 
-                    {{-- ── LAB ── --}}
+                    
                     @else
                         @include('mahasiswa.practicum.partials.learning-lab')
                     @endif

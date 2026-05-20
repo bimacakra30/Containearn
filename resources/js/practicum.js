@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const endSessionForm = document.getElementById('end-session-form');
     const runSessionExpiresAt      = document.getElementById('run-session-expires-at');
     const continueSessionExpiresAt = document.getElementById('continue-session-expires-at');
+    const endSessionReason = document.getElementById('end-session-reason');
 
     if (!timerElement) {
         window.sessionStorage.removeItem(timerStorageKey);
@@ -47,10 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.sessionStorage.setItem(storageKey, JSON.stringify({ signature: sessionSignature, expiresAt }));
         };
 
-        const endSession = () => {
+        const endSession = (reason = 'timeout') => {
             if (hasEnded) return;
             hasEnded = true;
             window.sessionStorage.removeItem(storageKey);
+            if (endSessionReason) {
+                endSessionReason.value = reason;
+            }
             endSessionForm.submit();
         };
 
@@ -63,13 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
         endSessionForm.addEventListener('submit', () => window.sessionStorage.removeItem(storageKey));
 
         if (remainingSeconds() <= 0) {
-            endSession();
+            endSession('timeout');
         } else {
             window.setInterval(() => {
                 persistTimerState();
                 syncDeadlineInputs();
                 renderTimer();
-                if (remainingSeconds() <= 0) endSession();
+                if (remainingSeconds() <= 0) endSession('timeout');
             }, 1000);
         }
     }

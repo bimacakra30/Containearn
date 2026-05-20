@@ -17,6 +17,7 @@ class Module extends Model
         'title',
         'description',
         'material_pdf_path',
+        'file_exe',
         'time_limit',
     ];
 

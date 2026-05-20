@@ -11,6 +11,7 @@
         'dosen' => 'Dosen',
         'mahasiswa' => 'Mahasiswa',
     ];
+    $classOptions = ['A', 'B', 'C', 'D'];
     $createHasOldInput = old('identity_id') || old('name') || old('email');
 @endphp
 
@@ -29,6 +30,7 @@
             name: '',
             email: '',
             role: 'mahasiswa',
+            class: '',
         },
         openEditModal(user) {
             this.editFormAction = user.action;
@@ -38,6 +40,7 @@
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                class: user.class,
             };
             this.editModalOpen = true;
         },
@@ -54,15 +57,6 @@
 
             <main class="app-main fade-in">
                 <x-app-header />
-                <header class="glass overflow-hidden p-7 sm:p-8 lg:p-10">
-                    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr),320px]">
-                        <div>
-                            <p class="eyebrow">Admin Panel</p>
-                            <h1 class="page-title">User Management</h1>
-                        </div>
-                    </div>
-                </header>
-
                 <x-alert-success />
 
                 @if ($errors->any())
@@ -119,6 +113,7 @@
                                     <th class="px-4 py-3 font-medium">User</th>
                                     <th class="px-4 py-3 font-medium">Identity ID</th>
                                     <th class="px-4 py-3 font-medium">Role</th>
+                                    <th class="px-4 py-3 font-medium">Class</th>
                                     <th class="px-4 py-3 font-medium">Joined</th>
                                     <th class="px-4 py-3 font-medium">Actions</th>
                                 </tr>
@@ -145,6 +140,9 @@
                                                 {{ $roleLabels[$user->role] ?? ucfirst($user->role) }}
                                             </span>
                                         </td>
+                                        <td class="px-4 py-4 text-slate-600">
+                                            {{ $user->role === 'mahasiswa' ? ($user->getAttribute('class') ?? '—') : '—' }}
+                                        </td>
                                         <td class="px-4 py-4 text-slate-600">{{ $user->created_at->format('d M Y') }}</td>
                                         <td class="px-4 py-4">
                                             @if ($canManageUser)
@@ -158,6 +156,7 @@
                                                             name: @js($user->name),
                                                             email: @js($user->email),
                                                             role: @js($user->role),
+                                                            class: @js($user->getAttribute('class')),
                                                         })"
                                                         class="btn-secondary px-3 py-2 text-xs">
                                                         Edit
@@ -190,7 +189,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-4 py-10 text-center text-slate-500">
+                                        <td colspan="6" class="px-4 py-10 text-center text-slate-500">
                                             No users are available to display.
                                         </td>
                                     </tr>
@@ -213,13 +212,15 @@
         show="showCreateModal"
         :action="route('admin.users.store')"
         :available-roles="$availableRoles"
-        :role-labels="$roleLabels" />
+        :role-labels="$roleLabels"
+        :class-options="$classOptions" />
 
     <x-user-update-modal
         show="editModalOpen"
         action="editFormAction"
         :available-roles="$availableRoles"
         :role-labels="$roleLabels"
+        :class-options="$classOptions"
         :current-user-id="$actor->id" />
 
     <form method="POST" :action="deleteFormAction" x-ref="deleteForm">

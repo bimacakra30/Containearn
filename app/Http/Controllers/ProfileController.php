@@ -4,23 +4,30 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'identity_id' => 'nullable|string|max:50|unique:users,identity_id,' . $request->user()->id,
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $request->user()->id,
+            'identity_id' => 'nullable|string|max:50|unique:users,identity_id,'.$request->user()->id,
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$request->user()->id,
+            'class' => [
+                'nullable',
+                Rule::requiredIf($request->user()->role === 'mahasiswa'),
+                Rule::in(['A', 'B', 'C', 'D']),
+            ],
             'password' => 'nullable|min:8|confirmed',
         ]);
 
         $request->user()->update([
             'identity_id' => $validated['identity_id'],
-            'name'  => $validated['name'],
+            'name' => $validated['name'],
             'email' => $validated['email'],
-            ...(!empty($validated['password'])
+            'class' => $request->user()->role === 'mahasiswa' ? $validated['class'] : null,
+            ...(! empty($validated['password'])
                 ? ['password' => Hash::make($validated['password'])]
                 : []
             ),

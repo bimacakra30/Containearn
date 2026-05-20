@@ -3,6 +3,7 @@
     'action',
     'availableRoles' => [],
     'roleLabels' => [],
+    'classOptions' => [],
 ])
 
 <div
@@ -45,7 +46,7 @@
             </button>
         </div>
 
-        <form method="POST" action="{{ $action }}" class="space-y-4">
+        <form method="POST" action="{{ $action }}" class="space-y-4" x-data="{ selectedRole: @js(old('role', 'mahasiswa')) }">
             @csrf
 
             <div class="grid gap-4 md:grid-cols-2">
@@ -89,6 +90,7 @@
                     <label class="form-label">Role</label>
                     <select
                         name="role"
+                        x-model="selectedRole"
                         class="form-input">
                         @foreach ($availableRoles as $role)
                             <option value="{{ $role }}" @selected(old('role', 'mahasiswa') === $role)>
@@ -97,6 +99,23 @@
                         @endforeach
                     </select>
                     @error('role')
+                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div x-show="selectedRole === 'mahasiswa'" x-cloak>
+                    <label class="form-label">Class</label>
+                    <select
+                        name="class"
+                        class="form-input">
+                        <option value="">Select class</option>
+                        @foreach ($classOptions as $class)
+                            <option value="{{ $class }}" @selected(old('class') === $class)>
+                                {{ $class }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('class')
                         <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
                     @enderror
                 </div>

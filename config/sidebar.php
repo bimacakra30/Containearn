@@ -6,17 +6,22 @@ return [
         [
             'label' => 'Dashboard',
             'route' => 'admin.dashboard',
-            'active' => ['admin.dashboard']
+            'active' => ['admin.dashboard'],
         ],
         [
             'label' => 'Profile',
             'route' => 'admin.profile',
-            'active' => ['admin.profile']
+            'active' => ['admin.profile'],
         ],
         [
             'label' => 'Users Management',
             'route' => 'admin.users.index',
-            'active' => ['admin.users.*']
+            'active' => ['admin.users.*'],
+        ],
+        [
+            'label' => 'Reports',
+            'route' => 'admin.reports.index',
+            'active' => ['admin.reports.*'],
         ],
     ],
 
@@ -24,28 +29,33 @@ return [
         [
             'label' => 'Dashboard',
             'route' => 'admin.dashboard',
-            'active' => ['admin.dashboard']
+            'active' => ['admin.dashboard'],
         ],
         [
             'label' => 'Profile',
             'route' => 'admin.profile',
-            'active' => ['admin.profile']
+            'active' => ['admin.profile'],
         ],
         [
             'label' => 'Users Management',
             'route' => 'admin.users.index',
-            'active' => ['admin.users.*']
+            'active' => ['admin.users.*'],
         ],
         [
             'label' => 'Practicum Contents',
             'route' => 'admin.contents.index',
-            'active' => ['admin.contents.*']
+            'active' => ['admin.contents.*'],
+        ],
+        [
+            'label' => 'Reports',
+            'route' => 'admin.reports.index',
+            'active' => ['admin.reports.*'],
         ],
 
         [
             'label' => 'Monitoring',
             'route' => 'admin.monitoring.index',
-            'active' => ['admin.monitoring.*']
+            'active' => ['admin.monitoring.*'],
         ],
     ],
 
@@ -53,17 +63,17 @@ return [
         [
             'label' => 'Dashboard',
             'route' => 'mahasiswa.dashboard',
-            'active' => ['mahasiswa.dashboard']
+            'active' => ['mahasiswa.dashboard'],
         ],
         [
             'label' => 'Profile',
             'route' => 'mahasiswa.profile',
-            'active' => ['mahasiswa.profile']
+            'active' => ['mahasiswa.profile'],
         ],
         [
             'label' => 'Practicum Content',
             'route' => 'mahasiswa.content.index',
-            'active' => ['mahasiswa.content.*']
+            'active' => ['mahasiswa.content.*'],
         ],
     ],
 

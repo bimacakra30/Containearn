@@ -182,11 +182,4 @@
     </div>
 </div>
 
-<script>
-    function loginForm() {
-        return {
-            submitting: false,
-        }
-    }
-</script>
 @endsection

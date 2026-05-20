@@ -8,15 +8,6 @@
 
                 <main class="app-main fade-in">
                     <x-app-header />
-                    <header class="glass overflow-hidden p-7 sm:p-8 lg:p-10">
-                        <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr),320px]">
-                            <div>
-                                <p class="eyebrow">Profile</p>
-                                <h1 class="page-title">Profile Details</h1>
-                            </div>
-                        </div>
-                    </header>
-
                     <x-alert-success />
 
                     <div class="glass p-7 space-y-5">
@@ -45,6 +36,10 @@
                             <div class="surface-muted px-4 py-4">
                                 <p class="eyebrow mb-2">Role</p>
                                 <p class="font-medium text-slate-800">{{ ucfirst(auth()->user()->role) }}</p>
+                            </div>
+                            <div class="surface-muted px-4 py-4">
+                                <p class="eyebrow mb-2">Class</p>
+                                <p class="font-medium text-slate-800">{{ auth()->user()->getAttribute('class') ?? '—' }}</p>
                             </div>
                             <div class="surface-muted px-4 py-4">
                                 <p class="eyebrow mb-2">Member Since</p>
@@ -88,6 +83,20 @@
                                     @enderror
                                 </div>
                                 <div>
+                                    <label class="form-label">Class</label>
+                                    <select name="class" class="form-input">
+                                        <option value="">Select class</option>
+                                        @foreach (['A', 'B', 'C', 'D'] as $class)
+                                            <option value="{{ $class }}" @selected(old('class', auth()->user()->getAttribute('class')) === $class)>
+                                                {{ $class }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('class')
+                                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
                                     <label class="form-label">
                                         New Password <span class="normal-case text-slate-400">(optional)</span>
                                     </label>
@@ -110,32 +119,6 @@
                             </div>
                         </form>
                     </div>
-
-                    @if(auth()->user()->role !== 'superadmin')
-                    <div class="glass border border-rose-100 p-7">
-                        <p class="eyebrow text-rose-400">Danger Zone</p>
-                        <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-rose-700">Delete Account</h2>
-                        <p class="mt-3 text-sm text-slate-500 mb-5">Once deleted, your account cannot be recovered.</p>
-                        <form method="POST" action="{{ route('profile.destroy') }}" x-ref="deleteForm">
-                            @csrf
-                            @method('DELETE')
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <div class="flex-1">
-                                    <input type="password" name="password" placeholder="Enter your password to confirm"
-                                        class="form-input focus:border-rose-400 focus:ring-rose-100">
-                                    @error('password')
-                                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                <button type="button" @click="showDelete = true"
-                                    class="btn-danger">
-                                    Delete Account
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    @endif
-
                 </main>
             </div>
         </div>

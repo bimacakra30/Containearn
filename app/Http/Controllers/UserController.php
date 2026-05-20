@@ -141,8 +141,13 @@ class UserController extends Controller
                 Rule::unique('users', 'email')->ignore($user?->id),
             ],
             'role' => ['required', Rule::in(['superadmin', 'dosen', 'mahasiswa'])],
+            'class' => ['nullable', Rule::requiredIf($request->input('role') === 'mahasiswa'), Rule::in(['A', 'B', 'C', 'D'])],
             'password' => $passwordRules,
         ]);
+
+        if ($validated['role'] !== 'mahasiswa') {
+            $validated['class'] = null;
+        }
 
         if (blank($validated['password'] ?? null)) {
             unset($validated['password']);

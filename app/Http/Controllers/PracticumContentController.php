@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PracticumContentController extends Controller
@@ -99,7 +100,7 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $this->deleteModuleMaterial($module);
+        $this->deleteModuleFiles($module);
         $module->delete();
 
         return redirect()->route('admin.contents.index')
@@ -143,7 +144,8 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $module->labQuestions()->create($this->validateLabQuestion($request));
+        $module->load('course');
+        $module->labQuestions()->create($this->validateLabQuestion($request, $module));
 
         return redirect()->route('admin.contents.index')
             ->with('success', 'Lab question created successfully.');
@@ -153,7 +155,8 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $labQuestion->update($this->validateLabQuestion($request));
+        $labQuestion->load('module.course');
+        $labQuestion->update($this->validateLabQuestion($request, $labQuestion->module));
 
         return redirect()->route('admin.contents.index')
             ->with('success', 'Lab question updated successfully.');
@@ -183,10 +186,6 @@ class PracticumContentController extends Controller
         $validated = $request->validate([
             'course_title' => ['required', 'string', 'max:255'],
             'docker_image' => ['required', 'string', 'max:255'],
-            'form_scope' => ['nullable', 'string'],
-            'course_context_id' => ['nullable', 'integer'],
-            'module_context_id' => ['nullable', 'integer'],
-            'question_context_id' => ['nullable', 'integer'],
         ]);
 
         return [
@@ -201,11 +200,8 @@ class PracticumContentController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'material_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'file_exe' => ['nullable', 'file', 'max:10240'],
             'time_limit' => ['required', 'integer', 'min:1', 'max:1440'],
-            'form_scope' => ['nullable', 'string'],
-            'course_context_id' => ['nullable', 'integer'],
-            'module_context_id' => ['nullable', 'integer'],
-            'question_context_id' => ['nullable', 'integer'],
         ]);
 
         $payload = [
@@ -224,6 +220,16 @@ class PracticumContentController extends Controller
                 ->store('module-materials', 'public');
         }
 
+        if ($request->hasFile('file_exe')) {
+            if ($module !== null) {
+                $this->deleteModuleExecutable($module);
+            }
+
+            $payload['file_exe'] = $request
+                ->file('file_exe')
+                ->store('module-files', 'public');
+        }
+
         return $payload;
     }
 
@@ -237,10 +243,6 @@ class PracticumContentController extends Controller
             'option_d' => ['required', 'string', 'max:255'],
             'correct_option' => ['required', 'in:a,b,c,d'],
             'order' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'form_scope' => ['nullable', 'string'],
-            'course_context_id' => ['nullable', 'integer'],
-            'module_context_id' => ['nullable', 'integer'],
-            'question_context_id' => ['nullable', 'integer'],
         ]);
 
         $payload = [
@@ -259,16 +261,22 @@ class PracticumContentController extends Controller
         return $payload;
     }
 
-    private function validateLabQuestion(Request $request): array
+    private function validateLabQuestion(Request $request, ?Module $module = null): array
     {
         $validated = $request->validate([
             'question' => ['required', 'string'],
             'output' => ['required', 'string'],
-            'form_scope' => ['nullable', 'string'],
-            'course_context_id' => ['nullable', 'integer'],
-            'module_context_id' => ['nullable', 'integer'],
-            'question_context_id' => ['nullable', 'integer'],
+            'sql_mode' => ['nullable', 'in:direct_result,validation_query'],
+            'validation_query' => ['nullable', 'string'],
+            'order_sensitive' => ['nullable', 'boolean'],
         ]);
+
+        if ($this->isMysqlModule($module)) {
+            return [
+                'question' => $validated['question'],
+                'output' => $this->buildSqlValidationOutput($validated),
+            ];
+        }
 
         return [
             'question' => $validated['question'],
@@ -276,10 +284,96 @@ class PracticumContentController extends Controller
         ];
     }
 
+    private function isMysqlModule(?Module $module): bool
+    {
+        return str_contains(strtolower((string) optional($module?->course)->docker_image), 'mysql');
+    }
+
+    private function buildSqlValidationOutput(array $validated): string
+    {
+        $mode = $validated['sql_mode'] ?? 'direct_result';
+
+        if ($mode === 'validation_query' && trim((string) ($validated['validation_query'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'validation_query' => 'Validation query wajib diisi untuk mode validation query.',
+            ]);
+        }
+
+        return json_encode([
+            'mode' => $mode,
+            'validation_query' => $mode === 'validation_query'
+                ? trim((string) $validated['validation_query'])
+                : null,
+            'expected_result' => $this->parseSqlExpectedRows($validated['output']),
+            'order_sensitive' => (bool) ($validated['order_sensitive'] ?? false),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    private function parseSqlExpectedRows(string $value): array
+    {
+        $lines = collect(preg_split('/\r\n|\r|\n/', trim($value)) ?: [])
+            ->map(fn (string $line) => trim($line))
+            ->filter(fn (string $line) => $line !== '')
+            ->values();
+
+        if ($lines->count() < 2) {
+            throw ValidationException::withMessages([
+                'output' => 'Expected result MySQL minimal berisi header dan satu baris data.',
+            ]);
+        }
+
+        $headers = $this->parseSqlExpectedLine($lines->shift());
+
+        if ($headers === []) {
+            throw ValidationException::withMessages([
+                'output' => 'Header expected result MySQL tidak boleh kosong.',
+            ]);
+        }
+
+        return $lines
+            ->map(function (string $line) use ($headers): array {
+                $values = $this->parseSqlExpectedLine($line);
+
+                if (count($values) !== count($headers)) {
+                    throw ValidationException::withMessages([
+                        'output' => 'Jumlah kolom pada setiap baris expected result harus sama dengan header.',
+                    ]);
+                }
+
+                return collect($headers)
+                    ->mapWithKeys(fn (string $header, int $index) => [$header => $values[$index]])
+                    ->all();
+            })
+            ->values()
+            ->all();
+    }
+
+    private function parseSqlExpectedLine(string $line): array
+    {
+        $delimiter = str_contains($line, '|') ? '|' : ',';
+
+        return collect(str_getcsv($line, $delimiter))
+            ->map(fn (?string $value) => trim((string) $value))
+            ->all();
+    }
+
     private function deleteModuleMaterial(Module $module): void
     {
         if ($module->material_pdf_path) {
             Storage::disk('public')->delete($module->material_pdf_path);
         }
+    }
+
+    private function deleteModuleExecutable(Module $module): void
+    {
+        if ($module->file_exe) {
+            Storage::disk('public')->delete($module->file_exe);
+        }
+    }
+
+    private function deleteModuleFiles(Module $module): void
+    {
+        $this->deleteModuleMaterial($module);
+        $this->deleteModuleExecutable($module);
     }
 }

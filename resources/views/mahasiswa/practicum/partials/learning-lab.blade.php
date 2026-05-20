@@ -162,6 +162,7 @@
 
             <form id="end-session-form" method="POST" action="{{ route('mahasiswa.content.end', $module) }}" class="hidden">
                 @csrf
+                <input type="hidden" name="reason" id="end-session-reason" value="manual">
             </form>
         </section>
     </section>
