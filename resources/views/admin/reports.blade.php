@@ -97,8 +97,8 @@
                                     x-on:click="openDetail(@js($detail))"
                                 >
                                     <span class="min-w-0">
-                                        <span class="block font-semibold text-slate-950">{{ $student->identity_id }}</span>
-                                        <span class="mt-1 block truncate text-sm text-slate-500">{{ $student->name }}</span>
+                                        <span class="block font-semibold text-slate-950">{{ $student->name }}</span>
+                                        <span class="mt-1 block truncate text-sm text-slate-500">{{ $student->identity_id }}</span>
                                     </span>
 
                                     <span class="text-sm text-slate-600">{{ $student->getAttribute('class') ? 'Class ' . $student->getAttribute('class') : '-' }}</span>

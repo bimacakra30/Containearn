@@ -28,7 +28,7 @@ class Module extends Model
 
     public function questions(): HasMany
     {
-        return $this->hasMany(Question::class, 'id_module', 'id_module')->orderBy('order');
+        return $this->hasMany(Question::class, 'id_module', 'id_module')->orderBy('id_question');
     }
 
     public function labQuestions(): HasMany

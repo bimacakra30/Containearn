@@ -196,7 +196,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                             <div>
                                 <div class="flex flex-wrap items-center gap-3">
                                     <span class="chip bg-blue-50 text-blue-700 border-blue-100">
-                                        Course #{{ $course->id_course }}
+                                        Course #{{ $loop->iteration }}
                                     </span>
                                     <span class="chip">
                                         {{ $course->modules_count }} modules
@@ -489,7 +489,6 @@ $createCourseOpen = old('form_scope') === 'course_create';
                             $questionCreateOpen = old('form_scope') === 'quiz_create' && $moduleHasContext;
                             $labCreateOpen = old('form_scope') === 'lab_create' && $moduleHasContext;
                             $moduleOpen = $moduleHasContext || $moduleEditOpen || $questionCreateOpen || $labCreateOpen;
-                            $nextQuizOrder = ((int) $module->questions->max('order')) + 1;
                             @endphp
 
                             <div
@@ -523,7 +522,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                         class="flex-1 text-left">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <span class="chip bg-blue-50 text-blue-700 border-blue-100">
-                                                Module #{{ $module->id_module }}
+                                                Module #{{ $loop->iteration }}
                                             </span>
                                             <span class="chip bg-emerald-50 text-emerald-700 border-emerald-100">
                                                 {{ $module->questions->count() }} quiz
@@ -797,34 +796,17 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                     <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
                                                     <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
 
-                                                    <div class="grid gap-4 md:grid-cols-[1fr,140px]">
-                                                        <div>
-                                                            <label class="form-label">Question</label>
-                                                            <textarea
-                                                                name="question"
-                                                                rows="3"
-                                                                class="form-input">{{ $questionCreateOpen ? old('question') : '' }}</textarea>
-                                                            @if ($questionCreateOpen)
-                                                            @error('question')
-                                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
-                                                            @enderror
-                                                            @endif
-                                                        </div>
-
-                                                        <div>
-                                                            <label class="form-label">Order</label>
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                name="order"
-                                                                value="{{ $questionCreateOpen ? old('order', $nextQuizOrder) : $nextQuizOrder }}"
-                                                                class="form-input">
-                                                            @if ($questionCreateOpen)
-                                                            @error('order')
-                                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
-                                                            @enderror
-                                                            @endif
-                                                        </div>
+                                                    <div>
+                                                        <label class="form-label">Question</label>
+                                                        <textarea
+                                                            name="question"
+                                                            rows="3"
+                                                            class="form-input">{{ $questionCreateOpen ? old('question') : '' }}</textarea>
+                                                        @if ($questionCreateOpen)
+                                                        @error('question')
+                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                        @enderror
+                                                        @endif
                                                     </div>
 
                                                     <div class="grid gap-3 md:grid-cols-2">
@@ -1053,7 +1035,6 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             <span class="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white">
                                                                 Quiz #{{ $loop->iteration }}
                                                             </span>
-                                                            <span class="chip">Order {{ $question->order }}</span>
                                                             <span class="chip bg-emerald-50 text-emerald-700 border-emerald-100">Answer {{ strtoupper($question->correct_option) }}</span>
                                                         </div>
                                                         <p class="text-sm font-medium leading-6 text-slate-800">{{ $question->question }}</p>
@@ -1136,34 +1117,17 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                                 <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
                                                                 <input type="hidden" name="question_context_id" value="{{ $question->id_question }}">
 
-                                                                <div class="grid gap-4 md:grid-cols-[1fr,140px]">
-                                                                    <div>
-                                                                        <label class="form-label">Question</label>
-                                                                        <textarea
-                                                                            name="question"
-                                                                            rows="3"
-                                                                            class="form-input">{{ $questionEditOpen ? old('question', $question->question) : $question->question }}</textarea>
-                                                                        @if ($questionEditOpen)
-                                                                        @error('question')
-                                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
-                                                                        @enderror
-                                                                        @endif
-                                                                    </div>
-
-                                                                    <div>
-                                                                        <label class="form-label">Order</label>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            name="order"
-                                                                            value="{{ $questionEditOpen ? old('order', $question->order) : $question->order }}"
-                                                                            class="form-input">
-                                                                        @if ($questionEditOpen)
-                                                                        @error('order')
-                                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
-                                                                        @enderror
-                                                                        @endif
-                                                                    </div>
+                                                                <div>
+                                                                    <label class="form-label">Question</label>
+                                                                    <textarea
+                                                                        name="question"
+                                                                        rows="3"
+                                                                        class="form-input">{{ $questionEditOpen ? old('question', $question->question) : $question->question }}</textarea>
+                                                                    @if ($questionEditOpen)
+                                                                    @error('question')
+                                                                    <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                                    @enderror
+                                                                    @endif
                                                                 </div>
 
                                                                 <div class="grid gap-3 md:grid-cols-2">

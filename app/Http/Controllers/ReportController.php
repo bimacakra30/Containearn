@@ -49,7 +49,6 @@ class ReportController extends Controller
             ->when($selectedClass, fn ($query) => $query->where('class', $selectedClass))
             ->orderByRaw('LENGTH(identity_id)')
             ->orderBy('identity_id')
-            ->orderBy('name')
             ->get();
 
         $moduleIds = $courses->flatMap(fn (Course $course) => $course->modules->pluck('id_module'))->values();

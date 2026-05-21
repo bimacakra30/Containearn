@@ -23,7 +23,7 @@ class PracticumContentController extends Controller
             ->with([
                 'modules' => fn ($query) => $query
                     ->with([
-                        'questions' => fn ($questionQuery) => $questionQuery->orderBy('order')->orderBy('id_question'),
+                        'questions' => fn ($questionQuery) => $questionQuery->orderBy('id_question'),
                         'labQuestions' => fn ($questionQuery) => $questionQuery->orderBy('id_question'),
                     ])
                     ->orderBy('id_module'),
@@ -111,10 +111,7 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $payload = $this->validateQuestion($request);
-        $payload['order'] ??= ((int) $module->questions()->max('order')) + 1;
-
-        $module->questions()->create($payload);
+        $module->questions()->create($this->validateQuestion($request));
 
         return redirect()->route('admin.contents.index')
             ->with('success', 'Quiz question created successfully.');
@@ -242,7 +239,6 @@ class PracticumContentController extends Controller
             'option_c' => ['required', 'string', 'max:255'],
             'option_d' => ['required', 'string', 'max:255'],
             'correct_option' => ['required', 'in:a,b,c,d'],
-            'order' => ['nullable', 'integer', 'min:0', 'max:9999'],
         ]);
 
         $payload = [
@@ -253,10 +249,6 @@ class PracticumContentController extends Controller
             'option_d' => $validated['option_d'],
             'correct_option' => $validated['correct_option'],
         ];
-
-        if (array_key_exists('order', $validated) && $validated['order'] !== null) {
-            $payload['order'] = $validated['order'];
-        }
 
         return $payload;
     }
