@@ -143,7 +143,6 @@
                         </div>
                     @endif
 
-                    <x-alert-success />
                     @if (session('error')) <div class="notice-danger">{{ session('error') }}</div> @endif
                     @if ($errors->any()) <div class="notice-danger">{{ $errors->first() }}</div> @endif
 

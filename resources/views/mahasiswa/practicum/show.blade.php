@@ -51,8 +51,6 @@
             </header>
 
             <div class="shrink-0 space-y-3">
-                <x-alert-success />
-
                 @if (session('error'))
                 <div class="notice-danger">
                     {{ session('error') }}

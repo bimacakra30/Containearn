@@ -8,8 +8,6 @@
 
                 <main class="app-main fade-in">
                     <x-app-header />
-                    <x-alert-success />
-
                     <div class="glass p-7 space-y-5">
                         <div class="flex items-center gap-4 border-b border-slate-200 pb-5">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-lg font-bold text-white">

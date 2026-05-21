@@ -11,7 +11,7 @@
         'dosen' => 'Dosen',
         'mahasiswa' => 'Mahasiswa',
     ];
-    $classOptions = ['A', 'B', 'C', 'D'];
+    $modalClassOptions = ['A', 'B', 'C', 'D'];
     $createHasOldInput = old('identity_id') || old('name') || old('email');
 @endphp
 
@@ -57,8 +57,6 @@
 
             <main class="app-main fade-in">
                 <x-app-header />
-                <x-alert-success />
-
                 @if ($errors->any())
                     <div class="notice-danger">
                         <p class="font-semibold">Validation failed. Please review the highlighted fields.</p>
@@ -73,18 +71,36 @@
                         </div>
 
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <form method="GET" action="{{ route('admin.users.index') }}" class="flex items-center gap-3">
-                                <label for="per_page" class="text-sm font-medium text-slate-600">Show</label>
-                                <select
-                                    id="per_page"
-                                    name="per_page"
-                                    onchange="this.form.submit()"
-                                    class="form-input py-2">
-                                    @foreach ([10, 50, 100] as $size)
-                                        <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
-                                    @endforeach
-                                </select>
-                                <span class="text-sm text-slate-500">entries</span>
+                            <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <div class="flex items-center gap-3">
+                                    <label for="class" class="text-sm font-medium text-slate-600">Filter</label>
+                                    <select
+                                        id="class"
+                                        name="class"
+                                        onchange="this.form.submit()"
+                                        class="form-input py-2"
+                                        style="width: 154px; padding-right: 2.75rem;">
+                                        <option value="">All Class</option>
+                                        @foreach ($classOptions as $class)
+                                            <option value="{{ $class }}" @selected($selectedClass === $class)>Class {{ $class }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="flex items-center gap-3">
+                                    <label for="per_page" class="text-sm font-medium text-slate-600">Show</label>
+                                    <select
+                                        id="per_page"
+                                        name="per_page"
+                                        onchange="this.form.submit()"
+                                        class="form-input py-2"
+                                        style="width: 78px; padding-right: 2.25rem;">
+                                        @foreach ([10, 50, 100] as $size)
+                                            <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
+                                        @endforeach
+                                    </select>
+                                    <span class="text-sm text-slate-500">entries</span>
+                                </div>
                             </form>
 
                             <button
@@ -213,14 +229,14 @@
         :action="route('admin.users.store')"
         :available-roles="$availableRoles"
         :role-labels="$roleLabels"
-        :class-options="$classOptions" />
+        :class-options="$modalClassOptions" />
 
     <x-user-update-modal
         show="editModalOpen"
         action="editFormAction"
         :available-roles="$availableRoles"
         :role-labels="$roleLabels"
-        :class-options="$classOptions"
+        :class-options="$modalClassOptions"
         :current-user-id="$actor->id" />
 
     <form method="POST" :action="deleteFormAction" x-ref="deleteForm">

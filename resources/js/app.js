@@ -5,7 +5,6 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
 const PAGE_LOADING_CLASS = 'page-loading';
-const DESKTOP_SIDEBAR_STORAGE_KEY = 'containearn_sidebar_hidden_v1';
 
 const startPageLoading = () => {
     document.body.classList.add(PAGE_LOADING_CLASS);
@@ -88,8 +87,6 @@ Alpine.data('shellLayout', () => ({
     init() {
         stopPageLoading();
 
-        this.desktopSidebarHidden = localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY) === '1';
-
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 1280) {
                 this.mobileSidebarOpen = false;
@@ -131,7 +128,6 @@ Alpine.data('shellLayout', () => ({
         if (window.innerWidth >= 1280) {
             this.desktopSidebarHidden = !this.desktopSidebarHidden;
             this.desktopSidebarPeek = false;
-            localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, this.desktopSidebarHidden ? '1' : '0');
             return;
         }
 

@@ -1,15 +1,13 @@
 @extends('layouts.master')
 
 @section('content')
-<div x-data="{ showConfirm: false, showDelete: false }">
+<div>
     <div class="app-shell">
         <div class="app-grid">
                 <x-sidebar />
 
                 <main class="app-main fade-in">
                     <x-app-header />
-                    <x-alert-success />
-
                     <div class="glass p-7 space-y-5">
                         <div class="flex items-center gap-4 border-b border-slate-200 pb-5">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-lg font-bold text-white">
@@ -53,8 +51,7 @@
                             <p class="eyebrow">Edit Profile</p>
                             <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-950">Update Profile</h2>
                         </div>
-                        <form method="POST" action="{{ route('profile.update') }}" class="space-y-4"
-                            @submit.prevent="showConfirm = true" x-ref="editForm">
+                        <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
                             @csrf
                             @method('PATCH')
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -123,18 +120,6 @@
             </div>
         </div>
     </div>
-
-    <x-modal-confirm
-        show="showConfirm"
-        title="Save Changes?"
-        message="Your profile will be updated."
-        action="$refs.editForm.submit()" />
-
-    <x-modal-delete
-        show="showDelete"
-        title="Delete Account?"
-        message="This action will permanently remove your account."
-        action="$refs.deleteForm.submit()" />
 
 </div>
 @endsection

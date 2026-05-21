@@ -27,8 +27,6 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
             <main class="app-main fade-in">
                 <x-app-header />
-                <x-alert-success />
-
                 @if ($errors->any())
                 <div class="notice-danger">
                     Validation failed. Check the form fields and try again.

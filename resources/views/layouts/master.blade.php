@@ -13,6 +13,9 @@
 </head>
 
 <body
+    data-sidebar="closed"
+    data-sidebar-peek="closed"
+    data-sidebar-mobile="closed"
     x-data="shellLayout()"
     x-init="init()"
     @keydown.window.escape="closeMobileSidebar()"

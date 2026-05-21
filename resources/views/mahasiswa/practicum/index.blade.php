@@ -12,8 +12,6 @@
             <main class="app-main fade-in">
                 <x-app-header />
                 <div class="space-y-4">
-                    <x-alert-success />
-
                     @if (session('error'))
                     <div class="notice-danger">
                         {{ session('error') }}
@@ -28,9 +26,6 @@
                 </div>
                 
                 @forelse ($courses as $course)
-                @php
-                $courseLabel = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python') ? 'Python Lab' : 'Interactive Lab';
-                @endphp
                 <section
                     class="glass p-7 sm:p-8 space-y-6"
                     x-data="{
@@ -47,11 +42,9 @@
                 >
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <span class="chip">{{ $courseLabel }}</span>
-                            <h2 class="mt-4 font-display text-3xl tracking-[-0.04em] text-slate-950">{{ $course->course_title }}</h2>
+                            <h2 class="font-display text-3xl tracking-[-0.04em] text-slate-950">{{ $course->course_title }}</h2>
                             <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
-                                {{ $course->modules_count }} modules tersedia untuk course ini. Runtime dasar:
-                                <span class="font-semibold text-slate-700">{{ $course->docker_image }}</span>
+                                Runtime: <span class="font-semibold text-slate-700">{{ $course->docker_image }}</span>
                             </p>
                         </div>
 
@@ -63,8 +56,6 @@
                                 :aria-expanded="(! modulesHidden).toString()">
                                 <span x-text="modulesHidden ? 'Show' : 'Hide'"></span>
                             </button>
-                            <span class="chip">{{ $course->modules_count }} modules</span>
-                            <span class="chip">{{ $course->docker_image }}</span>
                         </div>
                     </div>
 

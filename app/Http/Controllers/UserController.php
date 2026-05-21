@@ -15,15 +15,31 @@ class UserController extends Controller
         $this->authorizeAdminAccess($request);
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = in_array($perPage, [10, 50, 100], true) ? $perPage : 10;
+        $selectedClass = $request->query('class');
+        $selectedClass = in_array($selectedClass, ['A', 'B', 'C', 'D'], true) ? $selectedClass : null;
+
+        $classOptions = collect(['A', 'B', 'C', 'D'])->merge(User::query()
+            ->where('role', 'mahasiswa')
+            ->whereNotNull('class')
+            ->distinct()
+            ->orderBy('class')
+            ->pluck('class'))
+            ->unique()
+            ->values();
 
         $users = User::query()
-            ->latest()
+            ->where('role', '!=', 'superadmin')
+            ->when($selectedClass, fn ($query) => $query->where('class', $selectedClass))
+            ->orderByRaw('LENGTH(identity_id)')
+            ->orderBy('identity_id')
             ->paginate($perPage)
             ->withQueryString();
 
         return view('admin.users', [
             'users' => $users,
             'perPage' => $perPage,
+            'selectedClass' => $selectedClass,
+            'classOptions' => $classOptions,
         ]);
     }
 
