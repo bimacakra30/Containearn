@@ -102,7 +102,6 @@
                 </main>
             </div>
         </div>
-    </div>
 
     <x-modal-confirm
         show="showConfirm"

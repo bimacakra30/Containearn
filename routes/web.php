@@ -23,6 +23,8 @@ Route::get('/', function () {
 Route::middleware(['auth', 'role:superadmin,dosen'])->prefix('admin')->group(function () {
     Route::get('/', fn () => view('admin.dashboard'))->name('admin.dashboard');
     Route::get('/profile', fn () => view('admin.profile'))->name('admin.profile');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/reports', [ReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/monitoring', [MonitoringController::class, 'index'])->name('admin.monitoring.index');
     Route::get('/monitoring/{containerName}/logs', [MonitoringController::class, 'logs'])

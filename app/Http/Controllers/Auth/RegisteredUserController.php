@@ -7,8 +7,8 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -33,6 +33,7 @@ class RegisteredUserController extends Controller
             'identity_id' => ['required', 'string', 'max:50', 'unique:users'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users'],
+            'class' => ['required', Rule::in(['A', 'B', 'C', 'D'])],
             'password' => ['required', 'confirmed'],
         ]);
 
@@ -42,10 +43,13 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'mahasiswa',
+            'class' => $request->class,
         ]);
 
         event(new Registered($user));
 
-        return redirect()->route('login');
+        return redirect()
+            ->route('login')
+            ->with('success', 'Registration successful.');
     }
 }

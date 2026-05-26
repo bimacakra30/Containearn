@@ -11,9 +11,18 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'identity_id' => 'nullable|string|max:50|unique:users,identity_id,'.$request->user()->id,
+            'identity_id' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'identity_id')->ignore($request->user()->id),
+            ],
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$request->user()->id,
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->ignore($request->user()->id),
+            ],
             'class' => [
                 'nullable',
                 Rule::requiredIf($request->user()->role === 'mahasiswa'),
