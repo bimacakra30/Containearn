@@ -47,7 +47,7 @@
                             <p class="eyebrow">Edit Profile</p>
                             <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-950">Update Profile</h2>
                         </div>
-                        <form method="POST" action="{{ route('profile.update') }}" class="space-y-4"
+                        <form method="POST" action="{{ route('admin.profile.update') }}" class="space-y-4"
                             @submit.prevent="showConfirm = true" x-ref="editForm">
                             @csrf
                             @method('PATCH')
