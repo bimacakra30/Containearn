@@ -484,6 +484,8 @@ class StudentPracticumController extends Controller
                 $runtimeState = $this->prepareRuntimeState($user, $module, $docker);
             }
 
+            $this->copyModuleFileToPythonContainer($module, $runtimeState['container_name'], $docker);
+
             $docker->writeFileToContainer($runtimeState['container_name'], '/tmp/main.py', $code);
             $result = $docker->runPythonFile($runtimeState['container_name'], '/tmp/main.py');
 
@@ -578,6 +580,23 @@ class StudentPracticumController extends Controller
             'stderr' => '',
             'is_correct' => $this->normalizeOutput($code) === $this->normalizeOutput($question->output),
         ];
+    }
+
+    private function copyModuleFileToPythonContainer(Module $module, string $containerName, DockerService $docker): void
+    {
+        if (! $module->file_exe || ! Storage::disk('public')->exists($module->file_exe)) {
+            return;
+        }
+
+        $content = Storage::disk('public')->get($module->file_exe);
+        $extension = strtolower(pathinfo($module->file_exe, PATHINFO_EXTENSION));
+
+        $docker->writeFileToContainer($containerName, '/tmp/module-file', $content);
+
+        if ($extension !== '') {
+            $docker->writeFileToContainer($containerName, "/tmp/module-file.{$extension}", $content);
+            $docker->writeFileToContainer($containerName, "/tmp/module_file.{$extension}", $content);
+        }
     }
 
     private function findProgress(User $user, Module $module): ?ModuleProgress

@@ -28,7 +28,7 @@ $roleLabel = ucfirst($role);
 $user = auth()->user();
 @endphp
 
-<button type="button" @click="toggleSidebar()" class="sidebar-mobile-toggle" aria-label="Toggle sidebar">
+<button type="button" @click.stop="toggleSidebar()" class="sidebar-mobile-toggle" aria-label="Toggle sidebar" :aria-expanded="mobileSidebarOpen.toString()">
     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
@@ -43,6 +43,7 @@ $user = auth()->user();
 
 <aside
     class="app-sidebar fade-in"
+    @click.outside="closeMobileSidebar()"
     @mouseenter="openSidebarPeek()"
     @mouseleave="closeSidebarPeek()">
     <div class="sidebar-brand-bar">
@@ -54,7 +55,7 @@ $user = auth()->user();
             C
         </div>
 
-        <button type="button" @click="toggleSidebar()" class="sidebar-toggle xl:hidden" aria-label="Toggle sidebar">
+        <button type="button" @click.stop="closeSidebar()" class="sidebar-toggle xl:hidden" aria-label="Close sidebar">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
@@ -76,6 +77,7 @@ $user = auth()->user();
         @endphp
 
         <a href="{{ route($menu['route']) }}"
+            @click="closeMobileSidebar()"
             class="{{ $isActive ? 'nav-item nav-item-active' : 'nav-item' }}">
             <span class="nav-icon">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

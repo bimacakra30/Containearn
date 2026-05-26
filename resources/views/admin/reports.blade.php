@@ -123,95 +123,96 @@
                     No contents are available to report.
                 </section>
             @endforelse
+        </main>
+    </div>
 
-            <div
-                x-cloak
-                x-show="isOpen"
-                class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
-                role="dialog"
-                aria-modal="true"
-                x-on:keydown.escape.window="closeDetail()"
-            >
-                <div class="absolute inset-0 bg-slate-950/45" x-on:click="closeDetail()" x-transition.opacity></div>
+    <div
+        x-cloak
+        x-show="isOpen"
+        x-effect="document.body.classList.toggle('overflow-hidden', isOpen)"
+        class="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto px-3 py-4 sm:items-center sm:px-4 sm:py-6"
+        role="dialog"
+        aria-modal="true"
+        x-on:keydown.escape.window="closeDetail()"
+    >
+        <div class="fixed inset-0 bg-slate-950/45" x-on:click="closeDetail()" x-transition.opacity></div>
 
-                <div class="relative z-10 flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xl shadow-slate-950/10" x-transition>
-                    <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
-                        <div class="min-w-0">
-                            <p class="eyebrow" x-text="detail.course"></p>
-                            <h3 class="mt-2 truncate font-display text-xl tracking-[-0.03em] text-slate-950" x-text="detail.name"></h3>
-                            <p class="mt-1 text-sm text-slate-500">
-                                <span x-text="detail.identity"></span>
-                                <span class="mx-2 text-slate-300">/</span>
-                                <span x-text="detail.class"></span>
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
-                            x-on:click="closeDetail()"
-                            aria-label="Close report detail"
-                        >
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+        <div class="relative z-10 my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xl shadow-slate-950/10 sm:max-h-[86vh]" x-transition>
+            <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-5">
+                <div class="min-w-0">
+                    <p class="eyebrow break-words" x-text="detail.course"></p>
+                    <h3 class="mt-2 break-words font-display text-xl tracking-[-0.03em] text-slate-950" x-text="detail.name"></h3>
+                    <p class="mt-1 text-sm text-slate-500">
+                        <span x-text="detail.identity"></span>
+                        <span class="mx-2 text-slate-300">/</span>
+                        <span x-text="detail.class"></span>
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
+                    x-on:click="closeDetail()"
+                    aria-label="Close report detail"
+                >
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+                <div class="mb-5 rounded-[16px] border border-slate-200 bg-slate-50 p-4">
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <p class="text-sm font-semibold text-slate-700">Content Progress</p>
+                        <p class="font-semibold text-slate-950" x-text="detail.contentPercent + '%'"></p>
                     </div>
-
-                    <div class="min-h-0 flex-1 overflow-y-auto p-5">
-                        <div class="mb-5 rounded-[16px] border border-slate-200 bg-slate-50 p-4">
-                            <div class="mb-2 flex items-center justify-between gap-3">
-                                <p class="text-sm font-semibold text-slate-700">Content Progress</p>
-                                <p class="font-semibold text-slate-950" x-text="detail.contentPercent + '%'"></p>
-                            </div>
-                            <div class="h-2 overflow-hidden rounded-full bg-white">
-                                <div class="h-full rounded-full bg-indigo-500" :style="`width: ${Math.max(0, Math.min(100, detail.contentPercent || 0))}%`"></div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3">
-                            <template x-for="module in detail.modules" :key="module.number">
-                                <div class="rounded-[16px] border border-slate-200 bg-white p-4">
-                                    <div class="flex items-start justify-between gap-4">
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400" x-text="`Module ${module.number}`"></p>
-                                            <h4 class="mt-2 truncate text-base font-semibold text-slate-950" x-text="module.title"></h4>
-                                        </div>
-                                        <span
-                                            class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                                            :class="{
-                                                'bg-emerald-100 text-emerald-700': module.status === 'completed',
-                                                'bg-blue-100 text-blue-700': module.status === 'in_progress',
-                                                'bg-slate-100 text-slate-600': module.status !== 'completed' && module.status !== 'in_progress',
-                                            }"
-                                            x-text="module.statusLabel"
-                                        ></span>
-                                    </div>
-
-                                    <div class="mt-4">
-                                        <div class="mb-2 flex items-center justify-between gap-3">
-                                            <p class="text-sm text-slate-500">Progress</p>
-                                            <p class="font-semibold text-slate-950" x-text="module.percent + '%'"></p>
-                                        </div>
-                                        <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-                                            <div
-                                                class="h-full rounded-full"
-                                                :class="module.percent >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'"
-                                                :style="`width: ${Math.max(0, Math.min(100, module.percent || 0))}%`"
-                                            ></div>
-                                        </div>
-                                    </div>
-
-                                    <p class="mt-3 text-xs leading-5 text-slate-500">
-                                        Quiz <span x-text="module.quiz"></span>
-                                        <template x-if="module.lab">
-                                            <span> &middot; Lab <span x-text="module.lab"></span></span>
-                                        </template>
-                                    </p>
-                                </div>
-                            </template>
-                        </div>
+                    <div class="h-2 overflow-hidden rounded-full bg-white">
+                        <div class="h-full rounded-full bg-indigo-500" :style="`width: ${Math.max(0, Math.min(100, detail.contentPercent || 0))}%`"></div>
                     </div>
                 </div>
+
+                <div class="space-y-3">
+                    <template x-for="module in detail.modules" :key="module.number">
+                        <div class="rounded-[16px] border border-slate-200 bg-white p-4">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400" x-text="`Module ${module.number}`"></p>
+                                    <h4 class="mt-2 break-words text-base font-semibold text-slate-950" x-text="module.title"></h4>
+                                </div>
+                                <span
+                                    class="w-fit shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                                    :class="{
+                                        'bg-emerald-100 text-emerald-700': module.status === 'completed',
+                                        'bg-blue-100 text-blue-700': module.status === 'in_progress',
+                                        'bg-slate-100 text-slate-600': module.status !== 'completed' && module.status !== 'in_progress',
+                                    }"
+                                    x-text="module.statusLabel"
+                                ></span>
+                            </div>
+
+                            <div class="mt-4">
+                                <div class="mb-2 flex items-center justify-between gap-3">
+                                    <p class="text-sm text-slate-500">Progress</p>
+                                    <p class="font-semibold text-slate-950" x-text="module.percent + '%'"></p>
+                                </div>
+                                <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+                                    <div
+                                        class="h-full rounded-full"
+                                        :class="module.percent >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'"
+                                        :style="`width: ${Math.max(0, Math.min(100, module.percent || 0))}%`"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <p class="mt-3 text-xs leading-5 text-slate-500">
+                                Quiz <span x-text="module.quiz"></span>
+                                <template x-if="module.lab">
+                                    <span> &middot; Lab <span x-text="module.lab"></span></span>
+                                </template>
+                            </p>
+                        </div>
+                    </template>
+                </div>
             </div>
-        </main>
+        </div>
     </div>
 </div>
 @endsection

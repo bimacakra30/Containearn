@@ -84,11 +84,14 @@ Alpine.data('shellLayout', () => ({
     desktopSidebarHidden: true,
     desktopSidebarPeek: false,
     mobileSidebarOpen: false,
+    isDesktop() {
+        return window.innerWidth >= 1280;
+    },
     init() {
         stopPageLoading();
 
         window.addEventListener('resize', () => {
-            if (window.innerWidth >= 1280) {
+            if (this.isDesktop()) {
                 this.mobileSidebarOpen = false;
                 return;
             }
@@ -125,7 +128,7 @@ Alpine.data('shellLayout', () => ({
         });
     },
     toggleSidebar() {
-        if (window.innerWidth >= 1280) {
+        if (this.isDesktop()) {
             this.desktopSidebarHidden = !this.desktopSidebarHidden;
             this.desktopSidebarPeek = false;
             return;
@@ -133,16 +136,25 @@ Alpine.data('shellLayout', () => ({
 
         this.mobileSidebarOpen = !this.mobileSidebarOpen;
     },
+    closeSidebar() {
+        if (this.isDesktop()) {
+            this.desktopSidebarHidden = true;
+            this.desktopSidebarPeek = false;
+            return;
+        }
+
+        this.closeMobileSidebar();
+    },
     closeMobileSidebar() {
         this.mobileSidebarOpen = false;
     },
     openSidebarPeek() {
-        if (window.innerWidth >= 1280 && this.desktopSidebarHidden) {
+        if (this.isDesktop() && this.desktopSidebarHidden) {
             this.desktopSidebarPeek = true;
         }
     },
     closeSidebarPeek() {
-        if (window.innerWidth >= 1280) {
+        if (this.isDesktop()) {
             this.desktopSidebarPeek = false;
         }
     },

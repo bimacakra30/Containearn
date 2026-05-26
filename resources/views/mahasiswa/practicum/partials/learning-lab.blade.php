@@ -73,6 +73,24 @@
                 <p class="eyebrow">Question {{ $currentIndex + 1 }} of {{ $questions->count() }}</p>
                 <h2 class="mt-2 text-xl font-semibold text-slate-900">Task</h2>
                 <p class="mt-3 text-sm leading-7 text-slate-600">{{ $currentQuestion?->question }}</p>
+
+                @if (($state['runtime'] ?? null) === 'python' && $module->file_exe)
+                    @php
+                        $externalExtension = strtolower(pathinfo($module->file_exe, PATHINFO_EXTENSION));
+                    @endphp
+                    <div class="mt-4 rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
+                        <p class="font-semibold text-slate-800">External file tersedia di container:</p>
+                        <code class="font-mono text-slate-900">/tmp/module-file</code>
+                        @if ($externalExtension)
+                            <span class="mx-1 text-slate-400">atau</span>
+                            <code class="font-mono text-slate-900">/tmp/module-file.{{ $externalExtension }}</code>
+                            @if ($externalExtension === 'py')
+                                <span class="mx-1 text-slate-400">atau import</span>
+                                <code class="font-mono text-slate-900">module_file</code>
+                            @endif
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <section class="rounded-[16px] border border-slate-200 bg-white p-5">
