@@ -196,7 +196,7 @@ class PracticumContentController extends Controller
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:50'],
-            'description' => ['required', 'string', 'max:150'],
+            'description' => ['required', 'string'],
             'material_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'file_exe' => ['nullable', 'file', 'max:10240'],
             'time_limit' => ['required', 'integer', 'min:1', 'max:1440'],

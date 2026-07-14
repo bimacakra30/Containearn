@@ -537,8 +537,8 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                     </button>
 
                                     <div class="flex flex-wrap gap-2 lg:justify-end">
-                                        @if ($module->module_pdf_path)
-                                        
+                                        <a
+                                            @if ($module->module_pdf_path)
                                             href="{{ asset('storage/' . $module->module_pdf_path) }}"
                                             target="_blank"
                                             rel="noopener"
@@ -690,12 +690,12 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             accept="application/pdf,.pdf"
                                                             class="form-input">
                                                         @if ($module->module_pdf_path)
-                                                        
-                                                            href="{{ asset('storage/' . $module->module_pdf_path) }}"
-                                                            target="_blank"
-                                                            rel="noopener"
-                                                            class="mt-2 inline-flex text-sm font-semibold text-slate-700 hover:text-slate-950">
-                                                            View current PDF
+
+                                                        href="{{ asset('storage/' . $module->module_pdf_path) }}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                        class="mt-2 inline-flex text-sm font-semibold text-slate-700 hover:text-slate-950">
+                                                        View current PDF
                                                         </a>
                                                         @endif
                                                         @if ($moduleEditOpen)
@@ -923,8 +923,8 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                     <div>
                                                         <label class="form-label">SQL Check Mode</label>
                                                         <select name="sql_mode" class="form-input" x-model="sqlMode">
-                                                            <option value="direct_result" @selected(old('sql_mode', 'direct_result') === 'direct_result')>Direct result</option>
-                                                            <option value="validation_query" @selected(old('sql_mode') === 'validation_query')>Validation query</option>
+                                                            <option value="direct_result" @selected(old('sql_mode', 'direct_result' )==='direct_result' )>Direct result</option>
+                                                            <option value="validation_query" @selected(old('sql_mode')==='validation_query' )>Validation query</option>
                                                         </select>
                                                         @if ($labCreateOpen)
                                                         @error('sql_mode')
@@ -1205,10 +1205,10 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                             $sqlExpectedText = '';
 
                                             if ($isMysqlCourse && is_array($sqlExpectedRows) && count($sqlExpectedRows) > 0) {
-                                                $headers = array_keys($sqlExpectedRows[0]);
-                                                $sqlExpectedText = implode(',', $headers) . "\n" . collect($sqlExpectedRows)
-                                                    ->map(fn ($row) => implode(',', collect($headers)->map(fn ($header) => $row[$header] ?? '')->all()))
-                                                    ->implode("\n");
+                                            $headers = array_keys($sqlExpectedRows[0]);
+                                            $sqlExpectedText = implode(',', $headers) . "\n" . collect($sqlExpectedRows)
+                                            ->map(fn ($row) => implode(',', collect($headers)->map(fn ($header) => $row[$header] ?? '')->all()))
+                                            ->implode("\n");
                                             }
                                             @endphp
 
@@ -1315,8 +1315,8 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                                 <div>
                                                                     <label class="form-label">SQL Check Mode</label>
                                                                     <select name="sql_mode" class="form-input" x-model="sqlMode">
-                                                                        <option value="direct_result" @selected(old('sql_mode', $sqlConfig['mode'] ?? 'direct_result') === 'direct_result')>Direct result</option>
-                                                                        <option value="validation_query" @selected(old('sql_mode', $sqlConfig['mode'] ?? 'direct_result') === 'validation_query')>Validation query</option>
+                                                                        <option value="direct_result" @selected(old('sql_mode', $sqlConfig['mode'] ?? 'direct_result' )==='direct_result' )>Direct result</option>
+                                                                        <option value="validation_query" @selected(old('sql_mode', $sqlConfig['mode'] ?? 'direct_result' )==='validation_query' )>Validation query</option>
                                                                     </select>
                                                                     @if ($labEditOpen)
                                                                     @error('sql_mode')
