@@ -537,8 +537,8 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                     </button>
 
                                     <div class="flex flex-wrap gap-2 lg:justify-end">
+                                        @if ($module->module_pdf_path)
                                         <a
-                                            @if ($module->module_pdf_path)
                                             href="{{ asset('storage/' . $module->module_pdf_path) }}"
                                             target="_blank"
                                             rel="noopener"
