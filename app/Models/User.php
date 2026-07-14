@@ -11,6 +11,10 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    protected $table = 'user';
+
+    protected $primaryKey = 'id_user';
+
     protected $fillable = [
         'identity_id',
         'name',
@@ -42,11 +46,11 @@ class User extends Authenticatable
 
     public function moduleProgresses(): HasMany
     {
-        return $this->hasMany(ModuleProgress::class);
+        return $this->hasMany(ModuleProgress::class, 'id_user', 'id_user');
     }
 
     public function questionProgresses(): HasMany
     {
-        return $this->hasMany(QuestionProgress::class);
+        return $this->hasMany(QuestionProgress::class, 'id_user', 'id_user');
     }
 }

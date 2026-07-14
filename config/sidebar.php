@@ -15,13 +15,8 @@ return [
         ],
         [
             'label' => 'Users Management',
-            'route' => 'admin.users.index',
-            'active' => ['admin.users.*'],
-        ],
-        [
-            'label' => 'Reports',
-            'route' => 'admin.reports.index',
-            'active' => ['admin.reports.*'],
+            'route' => 'admin.user.index',
+            'active' => ['admin.user.*'],
         ],
     ],
 
@@ -38,8 +33,8 @@ return [
         ],
         [
             'label' => 'Users Management',
-            'route' => 'admin.users.index',
-            'active' => ['admin.users.*'],
+            'route' => 'admin.user.index',
+            'active' => ['admin.user.*'],
         ],
         [
             'label' => 'Practicum Contents',

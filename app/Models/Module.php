@@ -8,15 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Module extends Model
 {
-    protected $table = 'modules';
+    protected $table = 'module';
 
     protected $primaryKey = 'id_module';
 
     protected $fillable = [
         'id_course',
-        'title',
+        'module_title',
         'description',
-        'material_pdf_path',
+        'module_pdf_path',
         'file_exe',
         'time_limit',
     ];
@@ -26,18 +26,18 @@ class Module extends Model
         return $this->belongsTo(Course::class, 'id_course', 'id_course');
     }
 
-    public function questions(): HasMany
+    public function quizQuestions(): HasMany
     {
-        return $this->hasMany(Question::class, 'id_module', 'id_module')->orderBy('id_question');
+        return $this->hasMany(QuizQuestion::class, 'id_module', 'id_module')->orderBy('id_quiz');
     }
 
     public function labQuestions(): HasMany
     {
-        return $this->hasMany(LabQuestion::class, 'id_module', 'id_module')->orderBy('id_question');
+        return $this->hasMany(LabQuestion::class, 'id_module', 'id_module')->orderBy('id_lab');
     }
 
     public function progresses(): HasMany
     {
-        return $this->hasMany(ModuleProgress::class, 'module_id', 'id_module');
+        return $this->hasMany(ModuleProgress::class, 'id_module', 'id_module');
     }
 }

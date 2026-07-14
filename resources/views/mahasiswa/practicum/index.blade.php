@@ -93,7 +93,7 @@
                                     </div>
 
                                     <div class="mt-4">
-                                        <h3 class="text-[1.35rem] font-semibold tracking-[-0.03em] text-slate-950">{{ $module->title }}</h3>
+                                        <h3 class="text-[1.35rem] font-semibold tracking-[-0.03em] text-slate-950">{{ $module->module_title }}</h3>
                                         <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-500">{{ $module->description }}</p>
                                     </div>
 

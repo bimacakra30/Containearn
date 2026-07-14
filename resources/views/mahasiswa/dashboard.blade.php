@@ -26,7 +26,7 @@
                     <div class="mt-6 grid gap-4 md:grid-cols-2">
                         <a href="{{ route('mahasiswa.content.index') }}" class="surface-muted block p-6 transition hover:border-slate-300">
                             <h3 class="font-display text-2xl tracking-[-0.04em] text-slate-950">Practicum Content</h3>
-                            <p class="mt-3 text-sm leading-7 text-slate-600">Access the practicum modules and continue your learning activities in the platform.</p>
+                            <p class="mt-3 text-sm leading-7 text-slate-600">Access the practicum module and continue your learning activities in the platform.</p>
                         </a>
                         <a href="{{ route('mahasiswa.profile') }}" class="surface-muted block p-6 transition hover:border-slate-300">
                             <h3 class="font-display text-2xl tracking-[-0.04em] text-slate-950">Profile</h3>

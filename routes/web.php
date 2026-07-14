@@ -22,13 +22,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile/edit', fn () => redirect()->route('mahasiswa.profile'))->name('profile.edit');
 
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::match(['post', 'patch'], '/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::middleware('role:superadmin,dosen')->prefix('admin')->group(function () {
         Route::get('/', fn () => view('admin.dashboard'))->name('admin.dashboard');
         Route::get('/profile', fn () => view('admin.profile'))->name('admin.profile');
-        Route::patch('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+        Route::match(['post', 'patch'], '/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('admin.profile.destroy');
         Route::get('/reports', [ReportController::class, 'index'])->name('admin.reports.index');
         Route::get('/monitoring', [MonitoringController::class, 'index'])->name('admin.monitoring.index');
@@ -36,25 +36,25 @@ Route::middleware('auth')->group(function () {
             ->where('containerName', '[A-Za-z0-9][A-Za-z0-9_.-]*')
             ->name('admin.monitoring.logs');
         Route::get('/contents', [PracticumContentController::class, 'index'])->name('admin.contents.index');
-        Route::post('/contents/courses', [PracticumContentController::class, 'storeCourse'])->name('admin.contents.courses.store');
-        Route::patch('/contents/courses/{course}', [PracticumContentController::class, 'updateCourse'])->name('admin.contents.courses.update');
-        Route::delete('/contents/courses/{course}', [PracticumContentController::class, 'destroyCourse'])->name('admin.contents.courses.destroy');
-        Route::post('/contents/courses/{course}/modules', [PracticumContentController::class, 'storeModule'])->name('admin.contents.modules.store');
-        Route::patch('/contents/modules/{module}', [PracticumContentController::class, 'updateModule'])->name('admin.contents.modules.update');
-        Route::delete('/contents/modules/{module}', [PracticumContentController::class, 'destroyModule'])->name('admin.contents.modules.destroy');
+        Route::post('/contents/course', [PracticumContentController::class, 'storeCourse'])->name('admin.contents.course.store');
+        Route::patch('/contents/course/{course}', [PracticumContentController::class, 'updateCourse'])->name('admin.contents.course.update');
+        Route::delete('/contents/course/{course}', [PracticumContentController::class, 'destroyCourse'])->name('admin.contents.course.destroy');
+        Route::post('/contents/course/{course}/module', [PracticumContentController::class, 'storeModule'])->name('admin.contents.module.store');
+        Route::patch('/contents/module/{module}', [PracticumContentController::class, 'updateModule'])->name('admin.contents.module.update');
+        Route::delete('/contents/module/{module}', [PracticumContentController::class, 'destroyModule'])->name('admin.contents.module.destroy');
 
-        Route::post('/contents/modules/{module}/questions', [PracticumContentController::class, 'storeQuestion'])->name('admin.contents.questions.store');
+        Route::post('/contents/module/{module}/questions', [PracticumContentController::class, 'storeQuestion'])->name('admin.contents.questions.store');
         Route::patch('/contents/questions/{question}', [PracticumContentController::class, 'updateQuestion'])->name('admin.contents.questions.update');
         Route::delete('/contents/questions/{question}', [PracticumContentController::class, 'destroyQuestion'])->name('admin.contents.questions.destroy');
 
-        Route::post('/contents/modules/{module}/lab-questions', [PracticumContentController::class, 'storeLabQuestion'])->name('admin.contents.lab-questions.store');
+        Route::post('/contents/module/{module}/lab-questions', [PracticumContentController::class, 'storeLabQuestion'])->name('admin.contents.lab-questions.store');
         Route::patch('/contents/lab-questions/{labQuestion}', [PracticumContentController::class, 'updateLabQuestion'])->name('admin.contents.lab-questions.update');
         Route::delete('/contents/lab-questions/{labQuestion}', [PracticumContentController::class, 'destroyLabQuestion'])->name('admin.contents.lab-questions.destroy');
 
-        Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
-        Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
-        Route::patch('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
-        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::get('/user', [UserController::class, 'index'])->name('admin.user.index');
+        Route::post('/user', [UserController::class, 'store'])->name('admin.user.store');
+        Route::patch('/user/{user}', [UserController::class, 'update'])->name('admin.user.update');
+        Route::delete('/user/{user}', [UserController::class, 'destroy'])->name('admin.user.destroy');
     });
 
     Route::middleware('role:mahasiswa')->group(function () {
@@ -67,7 +67,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/content/{module}/run', [StudentPracticumController::class, 'run'])->name('mahasiswa.content.run');
             Route::post('/content/{module}/end', [StudentPracticumController::class, 'end'])->name('mahasiswa.content.end');
             Route::post('/content/{module}/next', [StudentPracticumController::class, 'next'])->name('mahasiswa.content.next');
-            Route::get('/modules/{module}/material-pdf', [StudentPracticumController::class, 'servePdf'])->name('mahasiswa.module.pdf');
+            Route::get('/module/{module}/material-pdf', [StudentPracticumController::class, 'servePdf'])->name('mahasiswa.module.pdf');
         });
     });
 });

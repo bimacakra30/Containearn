@@ -10,7 +10,7 @@ class LabQuestion extends Model
 {
     protected $table = 'lab_questions';
 
-    protected $primaryKey = 'id_question';
+    protected $primaryKey = 'id_lab';
 
     protected $fillable = [
         'id_module',
@@ -25,6 +25,6 @@ class LabQuestion extends Model
 
     public function progresses(): HasMany
     {
-        return $this->hasMany(QuestionProgress::class, 'lab_question_id', 'id_question');
+        return $this->hasMany(QuestionProgress::class, 'id_lab', 'id_lab');
     }
 }

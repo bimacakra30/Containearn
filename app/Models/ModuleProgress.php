@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ModuleProgress extends Model
 {
-    protected $table = 'module_progresses';
+    protected $table = 'module_progress';
+
+    protected $primaryKey = 'id_progress';
 
     protected $fillable = [
-        'user_id',
-        'module_id',
+        'id_user',
+        'id_module',
         'status',
         'current_question_index',
         'completed_at',
@@ -23,11 +25,11 @@ class ModuleProgress extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_user', 'id_user');
     }
 
     public function module(): BelongsTo
     {
-        return $this->belongsTo(Module::class, 'module_id', 'id_module');
+        return $this->belongsTo(Module::class, 'id_module', 'id_module');
     }
 }

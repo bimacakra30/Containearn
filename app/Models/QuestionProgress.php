@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QuestionProgress extends Model
 {
-    protected $table = 'lab_progresses';
+    protected $table = 'lab_progress';
+
+    protected $primaryKey = 'id_lab_progress';
 
     protected $fillable = [
-        'user_id',
-        'lab_question_id',
+        'id_user',
+        'id_lab',
         'submitted_code',
         'stdout',
         'stderr',
@@ -24,11 +26,11 @@ class QuestionProgress extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_user', 'id_user');
     }
 
     public function labQuestion(): BelongsTo
     {
-        return $this->belongsTo(LabQuestion::class, 'lab_question_id', 'id_question');
+        return $this->belongsTo(LabQuestion::class, 'id_lab', 'id_lab');
     }
 }

@@ -59,11 +59,7 @@ class UserController extends Controller
     {
         $actor = $this->authorizeAdminAccess($request);
         $validated = $this->validateUserData($request, $user);
-
-        $this->ensureOwnRoleIsUnchanged($actor, $user, $validated['role']);
-        $this->authorizeManagedUser($actor, $user);
         $this->authorizeRoleAssignment($actor, $validated['role']);
-        $this->ensureSuperadminStillExists($user, $validated['role']);
 
         $user->update($validated);
 
@@ -80,9 +76,6 @@ class UserController extends Controller
             'The currently signed-in account cannot be deleted from this page.'
         );
 
-        $this->authorizeManagedUser($actor, $user);
-        $this->ensureSuperadminStillExists($user);
-
         $user->delete();
 
         return back()->with('success', 'User deleted successfully.');
@@ -97,42 +90,12 @@ class UserController extends Controller
         return $actor;
     }
 
-    private function authorizeManagedUser(User $actor, User $target): void
-    {
-        abort_if(
-            $actor->role !== 'superadmin' && $target->role === 'superadmin',
-            403,
-            'Only superadmins can manage superadmin accounts.'
-        );
-    }
-
     private function authorizeRoleAssignment(User $actor, string $role): void
     {
         abort_if(
             $actor->role !== 'superadmin' && $role === 'superadmin',
             403,
             'Only superadmins can create or promote a superadmin account.'
-        );
-    }
-
-    private function ensureSuperadminStillExists(User $user, ?string $nextRole = null): void
-    {
-        $roleAfterUpdate = $nextRole ?? 'deleted';
-        $isLeavingSuperadminRole = $user->role === 'superadmin' && $roleAfterUpdate !== 'superadmin';
-
-        abort_if(
-            $isLeavingSuperadminRole && User::where('role', 'superadmin')->count() <= 1,
-            422,
-            'At least one active superadmin account must remain.'
-        );
-    }
-
-    private function ensureOwnRoleIsUnchanged(User $actor, User $target, string $nextRole): void
-    {
-        abort_if(
-            $actor->is($target) && $target->role !== $nextRole,
-            422,
-            'You cannot change your own role from this page.'
         );
     }
 
@@ -146,15 +109,16 @@ class UserController extends Controller
             'identity_id' => [
                 'required',
                 'string',
-                'max:50',
-                Rule::unique('users', 'identity_id')->ignore($user?->id),
+                'regex:/^[0-9]+$/',
+                'max:18',
+                Rule::unique('user', 'identity_id')->ignore($user?->getKey(), 'id_user'),
             ],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:60'],
             'email' => [
                 'required',
                 'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($user?->id),
+                'max:40',
+                Rule::unique('user', 'email')->ignore($user?->getKey(), 'id_user'),
             ],
             'role' => ['required', Rule::in(['superadmin', 'dosen', 'mahasiswa'])],
             'class' => ['nullable', Rule::requiredIf($request->input('role') === 'mahasiswa'), Rule::in(['A', 'B', 'C', 'D'])],

@@ -13,7 +13,7 @@
                         &larr; Back to content
                     </a>
                     <p class="eyebrow mt-4">Practicum Lab</p>
-                    <h1 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-950 sm:text-3xl">{{ $module->title }}</h1>
+                    <h1 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-950 sm:text-3xl">{{ $module->module_title }}</h1>
                     <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $module->description }}</p>
                 </div>
 
@@ -87,7 +87,7 @@
                 <div class="mt-6 grid gap-4 lg:grid-cols-2">
                     @foreach ($questions as $question)
                     @php
-                    $answer = (array) data_get($state, 'answers.' . $question->id_question, []);
+                    $answer = (array) data_get($state, 'answers.' . $question->id_lab, []);
                     $isCorrect = $answer['is_correct'] ?? false;
                     @endphp
                     <article class="surface-muted p-5">
@@ -127,8 +127,8 @@
                     <div class="flex flex-wrap gap-2">
                         @foreach ($questions as $question)
                         @php
-                        $answer = (array) data_get($state, 'answers.' . $question->id_question, []);
-                        $isCurrent = $currentQuestion && $currentQuestion->id_question === $question->id_question;
+                        $answer = (array) data_get($state, 'answers.' . $question->id_lab, []);
+                        $isCurrent = $currentQuestion && $currentQuestion->id_lab === $question->id_lab;
                         $isCorrect = $answer['is_correct'] ?? false;
                         $isAccessible = $isCompleted || $loop->index <= $checkpointIndex;
                             @endphp

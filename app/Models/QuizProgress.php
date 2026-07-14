@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QuizProgress extends Model
 {
-    protected $table = 'quiz_progresses';
+    protected $table = 'quiz_progress';
+
+    protected $primaryKey = 'id_quiz_progress';
 
     protected $fillable = [
-        'user_id',
-        'question_id',
+        'id_user',
+        'id_quiz',
         'selected_option',
         'is_correct',
     ];
@@ -22,11 +24,11 @@ class QuizProgress extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_user', 'id_user');
     }
 
-    public function question(): BelongsTo
+    public function quiz(): BelongsTo
     {
-        return $this->belongsTo(Question::class, 'question_id', 'id_question');
+        return $this->belongsTo(QuizQuestion::class, 'id_quiz', 'id_quiz');
     }
 }

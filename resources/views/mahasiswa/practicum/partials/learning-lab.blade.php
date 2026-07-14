@@ -11,7 +11,7 @@
         <div class="mt-6 grid gap-4 lg:grid-cols-2">
             @foreach ($questions as $question)
                 @php
-                    $answer = (array) data_get($state, 'answers.' . $question->id_question, []);
+                    $answer = (array) data_get($state, 'answers.' . $question->id_lab, []);
                 @endphp
                 <article class="surface-muted p-5">
                     <div class="flex items-center justify-between gap-4">
@@ -50,8 +50,8 @@
             <div class="flex flex-wrap gap-2">
                 @foreach ($questions as $question)
                     @php
-                        $answer = (array) data_get($state, 'answers.' . $question->id_question, []);
-                        $isCurrent = $currentQuestion && $currentQuestion->id_question === $question->id_question;
+                        $answer = (array) data_get($state, 'answers.' . $question->id_lab, []);
+                        $isCurrent = $currentQuestion && $currentQuestion->id_lab === $question->id_lab;
                         $isCorrect = $answer['is_correct'] ?? false;
                         $isAccessible = $isCompleted || $loop->index <= $checkpointIndex;
                     @endphp

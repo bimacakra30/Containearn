@@ -14,21 +14,23 @@ class ProfileController extends Controller
             'identity_id' => [
                 'required',
                 'string',
-                'max:50',
-                Rule::unique('users', 'identity_id')->ignore($request->user()->id),
+                'regex:/^[0-9]+$/',
+                'max:18',
+                Rule::unique('user', 'identity_id')->ignore($request->user()->getKey(), 'id_user'),
             ],
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:60',
             'email' => [
                 'required',
                 'email',
-                Rule::unique('users', 'email')->ignore($request->user()->id),
+                'max:40',
+                Rule::unique('user', 'email')->ignore($request->user()->getKey(), 'id_user'),
             ],
             'class' => [
                 'nullable',
                 Rule::requiredIf($request->user()->role === 'mahasiswa'),
                 Rule::in(['A', 'B', 'C', 'D']),
             ],
-            'password' => 'nullable|min:8|confirmed',
+            'password' => 'nullable|string|min:8|max:60|confirmed',
         ]);
 
         $request->user()->update([
@@ -43,23 +45,5 @@ class ProfileController extends Controller
         ]);
 
         return back()->with('success', 'Profile updated successfully.');
-    }
-
-    public function destroy(Request $request)
-    {
-        abort_if($request->user()->role === 'superadmin', 403, 'Superadmin cannot delete their own account.');
-
-        $request->validate([
-            'password' => 'required|current_password',
-        ]);
-
-        $user = $request->user();
-        auth()->logout();
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/');
     }
 }

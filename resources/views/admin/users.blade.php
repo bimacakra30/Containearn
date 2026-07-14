@@ -71,7 +71,7 @@
                         </div>
 
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <form method="GET" action="{{ route('admin.users.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <form method="GET" action="{{ route('admin.user.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
                                 <div class="flex items-center gap-3">
                                     <label for="class" class="text-sm font-medium text-slate-600">Filter</label>
                                     <select
@@ -166,8 +166,8 @@
                                                     <button
                                                         type="button"
                                                         @click="openEditModal({
-                                                            id: @js($user->id),
-                                                            action: @js(route('admin.users.update', $user)),
+                                                            id: @js($user->getKey()),
+                                                            action: @js(route('admin.user.update', $user)),
                                                             identity_id: @js($user->identity_id),
                                                             name: @js($user->name),
                                                             email: @js($user->email),
@@ -181,15 +181,15 @@
                                                     @if (! $actor->is($user))
                                                         <form
                                                             method="POST"
-                                                            action="{{ route('admin.users.destroy', $user) }}"
-                                                            x-ref="deleteForm{{ $user->id }}"
+                                                            action="{{ route('admin.user.destroy', $user) }}"
+                                                            x-ref="deleteForm{{ $user->getKey() }}"
                                                         >
                                                             @csrf
                                                             @method('DELETE')
                                                             <button
                                                                 type="button"
                                                                 @click="openDeleteModal({
-                                                                    action: @js(route('admin.users.destroy', $user)),
+                                                                    action: @js(route('admin.user.destroy', $user)),
                                                                     name: @js($user->name),
                                                                 })"
                                                                 class="inline-flex items-center justify-center rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
@@ -226,7 +226,7 @@
 
     <x-user-create-modal
         show="showCreateModal"
-        :action="route('admin.users.store')"
+        :action="route('admin.user.store')"
         :available-roles="$availableRoles"
         :role-labels="$roleLabels"
         :class-options="$modalClassOptions" />
@@ -237,7 +237,7 @@
         :available-roles="$availableRoles"
         :role-labels="$roleLabels"
         :class-options="$modalClassOptions"
-        :current-user-id="$actor->id" />
+        :current-user-id="$actor->getKey()" />
 
     <form method="POST" :action="deleteFormAction" x-ref="deleteForm">
         @csrf

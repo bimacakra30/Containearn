@@ -6,7 +6,7 @@ use App\Models\Course;
 use App\Models\LabQuestion;
 use App\Models\Module;
 use App\Models\ModuleProgress;
-use App\Models\Question;
+use App\Models\QuizQuestion;
 use App\Models\QuestionProgress;
 use App\Models\QuizProgress;
 use App\Models\User;
@@ -28,29 +28,29 @@ class StudentPracticumController extends Controller
 
         $courses = Course::query()
             ->with(['modules' => fn ($q) => $q
-                ->withCount(['questions', 'labQuestions'])
-                ->with('questions:id_question,id_module')
-                ->with('labQuestions:id_question,id_module')
+                ->withCount(['quizQuestions', 'labQuestions'])
+                ->with('quizQuestions:id_quiz,id_module')
+                ->with('labQuestions:id_lab,id_module')
                 ->orderBy('id_module')])
             ->orderBy('id_course')
             ->get();
 
         $progresses = ModuleProgress::query()
-            ->where('user_id', $user->getKey())
+            ->where('id_user', $user->getKey())
             ->get()
-            ->keyBy('module_id');
+            ->keyBy('id_module');
 
         $quizProgresses = QuizProgress::query()
-            ->where('user_id', $user->getKey())
+            ->where('id_user', $user->getKey())
             ->where('is_correct', true)
             ->get()
-            ->keyBy('question_id');
+            ->keyBy('id_quiz');
 
         $labProgresses = QuestionProgress::query()
-            ->where('user_id', $user->getKey())
+            ->where('id_user', $user->getKey())
             ->where('is_correct', true)
             ->get()
-            ->keyBy('lab_question_id');
+            ->keyBy('id_lab');
 
         $courses = $courses
             ->map(fn (Course $c) => $this->decorateCourseModules($c, $progresses, $quizProgresses, $labProgresses))
@@ -64,7 +64,7 @@ class StudentPracticumController extends Controller
     public function start(Request $request, Module $module): RedirectResponse
     {
         $user = $request->user();
-        $module->load(['course', 'questions', 'labQuestions']);
+        $module->load(['course', 'quizQuestions', 'labQuestions']);
 
         $progress = $this->findProgress($user, $module);
 
@@ -74,8 +74,8 @@ class StudentPracticumController extends Controller
         }
 
         $progress ??= ModuleProgress::query()->create([
-            'user_id' => $user->getKey(),
-            'module_id' => $module->getKey(),
+            'id_user' => $user->getKey(),
+            'id_module' => $module->getKey(),
             'status' => 'in_progress',
             'current_question_index' => 0,
         ]);
@@ -87,7 +87,7 @@ class StudentPracticumController extends Controller
     public function show(Request $request, Module $module, DockerService $docker): View|RedirectResponse
     {
         $user = $request->user();
-        $module->load(['course', 'questions', 'labQuestions']);
+        $module->load(['course', 'quizQuestions', 'labQuestions']);
 
         $progress = $this->findProgress($user, $module);
 
@@ -105,17 +105,17 @@ class StudentPracticumController extends Controller
         $validViews = ['material', 'quiz', 'lab', 'summary'];
         $activeView = in_array($activeView, $validViews, true) ? $activeView : 'material';
 
-        $quizQuestions = $module->questions->values();
+        $quizQuestions = $module->quizQuestions->values();
         $quizProgresses = QuizProgress::query()
-            ->where('user_id', $user->getKey())
-            ->whereIn('question_id', $quizQuestions->pluck('id_question'))
+            ->where('id_user', $user->getKey())
+            ->whereIn('id_quiz', $quizQuestions->pluck('id_quiz'))
             ->get()
-            ->keyBy('question_id');
+            ->keyBy('id_quiz');
 
-        $quizAnswers = $quizQuestions->mapWithKeys(fn (Question $q) => [
-            $q->id_question => [
-                'selected_option' => $quizProgresses->get($q->id_question)?->selected_option,
-                'is_correct' => $quizProgresses->get($q->id_question)?->is_correct ?? false,
+        $quizAnswers = $quizQuestions->mapWithKeys(fn (QuizQuestion $q) => [
+            $q->id_quiz => [
+                'selected_option' => $quizProgresses->get($q->id_quiz)?->selected_option,
+                'is_correct' => $quizProgresses->get($q->id_quiz)?->is_correct ?? false,
             ],
         ])->all();
 
@@ -162,7 +162,7 @@ class StudentPracticumController extends Controller
         $selectedIndex = $this->resolveSelectedQuestionIndex($request->integer('question', $rawIndex), $progress, $labQuestions);
         $currentQuestion = $labQuestions->get($selectedIndex);
         $currentAnswer = $currentQuestion instanceof LabQuestion
-            ? (array) data_get($state, 'answers.'.$currentQuestion->id_question, [])
+            ? (array) data_get($state, 'answers.'.$currentQuestion->id_lab, [])
             : [];
 
         $editorLanguage = match ($state['runtime'] ?? 'text') {
@@ -177,7 +177,7 @@ class StudentPracticumController extends Controller
         };
         $canOpenSummary = $isCompleted || ($quizAllCorrect && ! $hasLab);
         $moduleProgress = $this->calculateLearningProgress(
-            (bool) $module->material_pdf_path,
+            (bool) $module->module_pdf_path,
             $quizAllCorrect,
             $isCompleted,
             $hasLab,
@@ -212,7 +212,7 @@ class StudentPracticumController extends Controller
     public function submitQuiz(Request $request, Module $module): RedirectResponse
     {
         $user = $request->user();
-        $module->load(['questions']);
+        $module->load(['quizQuestions']);
 
         $progress = $this->findProgress($user, $module);
         if ($progress === null) {
@@ -221,23 +221,23 @@ class StudentPracticumController extends Controller
         }
 
         $payload = $request->validate([
-            'question_id' => ['required', 'integer'],
+            'id_quiz' => ['required', 'integer'],
             'selected_option' => ['required', 'in:a,b,c,d'],
         ]);
 
-        $question = $module->questions->firstWhere('id_question', $payload['question_id']);
-        if (! $question instanceof Question) {
+        $question = $module->quizQuestions->firstWhere('id_quiz', $payload['id_quiz']);
+        if (! $question instanceof QuizQuestion) {
             return back()->with('error', 'Question not found.');
         }
 
         $isCorrect = $payload['selected_option'] === $question->correct_option;
 
         QuizProgress::query()->updateOrCreate(
-            ['user_id' => $user->getKey(), 'question_id' => $question->id_question],
+            ['id_user' => $user->getKey(), 'id_quiz' => $question->id_quiz],
             ['selected_option' => $payload['selected_option'], 'is_correct' => $isCorrect]
         );
 
-        return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']).'#q'.$question->id_question)
+        return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']).'#q'.$question->id_quiz)
             ->with($isCorrect ? 'success' : 'error', $isCorrect ? 'Jawaban benar!' : 'Jawaban salah, coba lagi.');
     }
 
@@ -296,7 +296,7 @@ class StudentPracticumController extends Controller
         $request->session()->put($sessionKey, $runtimeState);
 
         QuestionProgress::query()->updateOrCreate(
-            ['user_id' => $user->getKey(), 'lab_question_id' => $currentQuestion->getKey()],
+            ['id_user' => $user->getKey(), 'id_lab' => $currentQuestion->getKey()],
             [
                 'submitted_code' => $payload['code'],
                 'stdout' => $execution['stdout'],
@@ -375,8 +375,8 @@ class StudentPracticumController extends Controller
         }
 
         $answer = QuestionProgress::query()
-            ->where('user_id', $user->getKey())
-            ->where('lab_question_id', $currentQuestion->getKey())
+            ->where('id_user', $user->getKey())
+            ->where('id_lab', $currentQuestion->getKey())
             ->first();
 
         if (! ($answer?->is_correct)) {
@@ -411,8 +411,8 @@ class StudentPracticumController extends Controller
 
     public function servePdf(Module $module)
     {
-        abort_unless($module->material_pdf_path, 404);
-        $path = storage_path('app/public/'.$module->material_pdf_path);
+        abort_unless($module->module_pdf_path, 404);
+        $path = storage_path('app/public/'.$module->module_pdf_path);
         abort_unless(file_exists($path), 404);
 
         return response()->make(
@@ -428,13 +428,13 @@ class StudentPracticumController extends Controller
     private function buildModuleState(User $user, Module $module, ModuleProgress $progress, array $runtimeState = [], Collection $labQuestions = new Collection): array
     {
         $labProgresses = QuestionProgress::query()
-            ->where('user_id', $user->getKey())
-            ->whereIn('lab_question_id', $labQuestions->pluck('id_question'))
+            ->where('id_user', $user->getKey())
+            ->whereIn('id_lab', $labQuestions->pluck('id_lab'))
             ->get()
-            ->keyBy('lab_question_id');
+            ->keyBy('id_lab');
 
         $answers = $labProgresses->mapWithKeys(fn (QuestionProgress $qp) => [
-            $qp->lab_question_id => [
+            $qp->id_lab => [
                 'submitted_code' => $qp->submitted_code,
                 'stdout' => $qp->stdout,
                 'stderr' => $qp->stderr,
@@ -602,8 +602,8 @@ class StudentPracticumController extends Controller
     private function findProgress(User $user, Module $module): ?ModuleProgress
     {
         return ModuleProgress::query()
-            ->where('user_id', $user->getKey())
-            ->where('module_id', $module->getKey())
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
             ->first();
     }
 
@@ -613,8 +613,8 @@ class StudentPracticumController extends Controller
             ->where('id_course', $module->id_course)
             ->where('id_module', '<', $module->getKey())
             ->orderByDesc('id_module')
-            ->with(['questions:id_question,id_module'])
-            ->withCount(['questions', 'labQuestions'])
+            ->with(['quizQuestions:id_quiz,id_module'])
+            ->withCount(['quizQuestions', 'labQuestions'])
             ->first();
 
         return $previousModule === null || $this->isModuleCompletedForUser($user, $previousModule);
@@ -623,8 +623,8 @@ class StudentPracticumController extends Controller
     private function isModuleCompletedForUser(User $user, Module $module): bool
     {
         $progress = ModuleProgress::query()
-            ->where('user_id', $user->getKey())
-            ->where('module_id', $module->getKey())
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
             ->first();
 
         if ($progress?->status === 'completed') {
@@ -635,14 +635,14 @@ class StudentPracticumController extends Controller
             return false;
         }
 
-        $questionIds = $module->questions->pluck('id_question');
+        $questionIds = $module->quizQuestions->pluck('id_quiz');
         if ($questionIds->isEmpty()) {
             return false;
         }
 
         $correctCount = QuizProgress::query()
-            ->where('user_id', $user->getKey())
-            ->whereIn('question_id', $questionIds)
+            ->where('id_user', $user->getKey())
+            ->whereIn('id_quiz', $questionIds)
             ->where('is_correct', true)
             ->count();
 
@@ -853,12 +853,12 @@ class StudentPracticumController extends Controller
             $course->modules
                 ->sortBy('id_module')
                 ->values()
-                ->map(function (Module $module) use ($progresses, $quizProgresses, $labProgresses, &$previousCompleted) {
+                ->map(function (Module $module) use ($progresses, $quizProgresses, &$previousCompleted) {
                     $progress = $progresses->get($module->getKey());
-                    $quizTotal = (int) $module->questions_count;
+                    $quizTotal = (int) $module->quiz_questions_count;
                     $labTotal = (int) $module->lab_questions_count;
-                    $correctCount = $module->questions
-                        ->filter(fn (Question $question) => $quizProgresses->has($question->id_question))
+                    $correctCount = $module->quizQuestions
+                        ->filter(fn (QuizQuestion $question) => $quizProgresses->has($question->id_quiz))
                         ->count();
                     $quizDone = $quizTotal > 0 && $correctCount >= $quizTotal;
                     $completed = $progress?->status === 'completed' || ($progress !== null && $labTotal === 0 && $quizDone);
@@ -873,7 +873,7 @@ class StudentPracticumController extends Controller
                     $module->setAttribute('practicum_status', $status);
                     $module->setAttribute('practicum_progress', $progress);
                     $module->setAttribute('learning_progress_percent', $this->calculateLearningProgress(
-                        $progress !== null && (bool) $module->material_pdf_path,
+                        $progress !== null && (bool) $module->module_pdf_path,
                         $quizDone,
                         $completed,
                         $labTotal > 0,

@@ -39,7 +39,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <p class="eyebrow">Content Structure</p>
-                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">Courses, modules, quiz, and lab</h2>
+                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">Courses, module, quiz, and lab</h2>
                         </div>
 
                         <button
@@ -91,7 +91,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
                                 <form
                                     method="POST"
-                                    action="{{ route('admin.contents.courses.store') }}"
+                                    action="{{ route('admin.contents.course.store') }}"
                                     class="grid gap-4 md:grid-cols-2">
                                     @csrf
                                     <input type="hidden" name="form_scope" value="course_create">
@@ -119,14 +119,14 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
                                             <option value="">Select Docker Image</option>
 
-                                            <option value="python:3.12-slim"
-                                                {{ old('docker_image') === 'python:3.12-slim' ? 'selected' : '' }}>
-                                                python:3.12-slim
+                                            <option value="python:3.14.6"
+                                                {{ old('docker_image') === 'python:3.14.6' ? 'selected' : '' }}>
+                                                python:3.14.6
                                             </option>
 
-                                            <option value="mysql:8.0"
-                                                {{ old('docker_image') === 'mysql:8.0' ? 'selected' : '' }}>
-                                                mysql:8.0
+                                            <option value="mariadb:10.11.18"
+                                                {{ old('docker_image') === 'mariadb:10.11.18' ? 'selected' : '' }}>
+                                                mariadb:10.11.18
                                             </option>
 
                                         </select>
@@ -197,7 +197,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                         Course #{{ $loop->iteration }}
                                     </span>
                                     <span class="chip">
-                                        {{ $course->modules_count }} modules
+                                        {{ $course->modules_count }} module
                                     </span>
                                 </div>
                                 <h3 class="mt-4 font-display text-3xl tracking-[-0.04em] text-slate-900">{{ $course->course_title }}</h3>
@@ -228,7 +228,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                 </button>
                                 <button
                                     type="button"
-                                    @click="openDeleteModal(@js(route('admin.contents.courses.destroy', $course)), @js('course &quot;' . $course->course_title . '&quot;'))"
+                                    @click="openDeleteModal(@js(route('admin.contents.course.destroy', $course)), @js('course &quot;' . $course->course_title . '&quot;'))"
                                     class="inline-flex items-center justify-center rounded-[14px] bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
                                     Delete
                                 </button>
@@ -276,7 +276,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
                                     <form
                                         method="POST"
-                                        action="{{ route('admin.contents.courses.update', $course) }}"
+                                        action="{{ route('admin.contents.course.update', $course) }}"
                                         class="grid gap-4 md:grid-cols-2">
                                         @csrf
                                         @method('PATCH')
@@ -371,7 +371,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
                                     <form
                                         method="POST"
-                                        action="{{ route('admin.contents.modules.store', $course) }}"
+                                        action="{{ route('admin.contents.module.store', $course) }}"
                                         enctype="multipart/form-data"
                                         class="grid gap-4 md:grid-cols-2">
                                         @csrf
@@ -523,7 +523,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                 Module #{{ $loop->iteration }}
                                             </span>
                                             <span class="chip bg-emerald-50 text-emerald-700 border-emerald-100">
-                                                {{ $module->questions->count() }} quiz
+                                                {{ $module->quizQuestions->count() }} quiz
                                             </span>
                                             <span class="chip bg-amber-50 text-amber-700 border-amber-100">
                                                 {{ $module->labQuestions->count() }} lab
@@ -532,14 +532,14 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                 {{ $module->time_limit }} minutes
                                             </span>
                                         </div>
-                                        <h4 class="mt-3 text-lg font-semibold text-slate-900">{{ $module->title }}</h4>
+                                        <h4 class="mt-3 text-lg font-semibold text-slate-900">{{ $module->module_title }}</h4>
                                         <p class="mt-1 max-w-3xl text-sm text-slate-500">{{ $module->description }}</p>
                                     </button>
 
                                     <div class="flex flex-wrap gap-2 lg:justify-end">
-                                        @if ($module->material_pdf_path)
-                                        <a
-                                            href="{{ asset('storage/' . $module->material_pdf_path) }}"
+                                        @if ($module->module_pdf_path)
+                                        
+                                            href="{{ asset('storage/' . $module->module_pdf_path) }}"
                                             target="_blank"
                                             rel="noopener"
                                             class="btn-secondary px-4 py-2 text-xs">
@@ -571,7 +571,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                         </button>
                                         <button
                                             type="button"
-                                            @click="openDeleteModal(@js(route('admin.contents.modules.destroy', $module)), @js('module &quot;' . $module->title . '&quot;'))"
+                                            @click="openDeleteModal(@js(route('admin.contents.module.destroy', $module)), @js('module &quot;' . $module->module_title . '&quot;'))"
                                             class="inline-flex items-center justify-center rounded-[14px] bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
                                             Delete
                                         </button>
@@ -616,7 +616,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                 <div class="mb-5 flex items-start justify-between gap-4">
                                                     <div>
                                                         <p class="eyebrow">Edit Module</p>
-                                                        <h3 class="font-display text-xl text-slate-900">{{ $module->title }}</h3>
+                                                        <h3 class="font-display text-xl text-slate-900">{{ $module->module_title }}</h3>
                                                         <p class="mt-1 text-sm text-slate-500">{{ $course->course_title }}</p>
                                                     </div>
 
@@ -630,7 +630,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
                                                 <form
                                                     method="POST"
-                                                    action="{{ route('admin.contents.modules.update', $module) }}"
+                                                    action="{{ route('admin.contents.module.update', $module) }}"
                                                     enctype="multipart/form-data"
                                                     class="grid gap-4 md:grid-cols-2">
                                                     @csrf
@@ -644,7 +644,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                         <input
                                                             type="text"
                                                             name="title"
-                                                            value="{{ $moduleEditOpen ? old('title', $module->title) : $module->title }}"
+                                                            value="{{ $moduleEditOpen ? old('title', $module->module_title) : $module->module_title }}"
                                                             class="form-input">
                                                         @if ($moduleEditOpen)
                                                         @error('title')
@@ -689,9 +689,9 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             name="material_pdf"
                                                             accept="application/pdf,.pdf"
                                                             class="form-input">
-                                                        @if ($module->material_pdf_path)
-                                                        <a
-                                                            href="{{ asset('storage/' . $module->material_pdf_path) }}"
+                                                        @if ($module->module_pdf_path)
+                                                        
+                                                            href="{{ asset('storage/' . $module->module_pdf_path) }}"
                                                             target="_blank"
                                                             rel="noopener"
                                                             class="mt-2 inline-flex text-sm font-semibold text-slate-700 hover:text-slate-950">
@@ -773,7 +773,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                 <div class="mb-5 flex items-start justify-between gap-4">
                                                     <div>
                                                         <p class="eyebrow">Add Quiz</p>
-                                                        <h3 class="font-display text-xl text-slate-900">{{ $module->title }}</h3>
+                                                        <h3 class="font-display text-xl text-slate-900">{{ $module->module_title }}</h3>
                                                         <p class="mt-1 text-sm text-slate-500">Create a multiple choice question for this module.</p>
                                                     </div>
 
@@ -882,7 +882,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                 <div class="mb-5 flex items-start justify-between gap-4">
                                                     <div>
                                                         <p class="eyebrow">Add Lab</p>
-                                                        <h3 class="font-display text-xl text-slate-900">{{ $module->title }}</h3>
+                                                        <h3 class="font-display text-xl text-slate-900">{{ $module->module_title }}</h3>
                                                         <p class="mt-1 text-sm text-slate-500">
                                                             {{ $isMysqlCourse ? 'Create a SQL practice question and validation config.' : 'Create a coding practice question and expected output.' }}
                                                         </p>
@@ -1017,9 +1017,9 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                     Add Quiz
                                                 </button>
                                             </div>
-                                            @forelse ($module->questions as $question)
+                                            @forelse ($module->quizQuestions as $question)
                                             @php
-                                            $questionHasContext = (int) old('question_context_id') === $question->id_question;
+                                            $questionHasContext = (int) old('question_context_id') === $question->id_quiz;
                                             $questionEditOpen = old('form_scope') === 'quiz_edit' && $questionHasContext;
                                             $options = ['a' => $question->option_a, 'b' => $question->option_b, 'c' => $question->option_c, 'd' => $question->option_d];
                                             @endphp
@@ -1056,7 +1056,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                @click="openDeleteModal(@js(route('admin.contents.questions.destroy', $question)), @js('quiz #' . $loop->iteration . ' in &quot;' . $module->title . '&quot;'))"
+                                                                @click="openDeleteModal(@js(route('admin.contents.questions.destroy', $question)), @js('quiz #' . $loop->iteration . ' in &quot;' . $module->module_title . '&quot;'))"
                                                                 class="inline-flex items-center justify-center rounded-[14px] bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
                                                                 Delete
                                                             </button>
@@ -1093,7 +1093,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                                 <div>
                                                                     <p class="eyebrow">Edit Quiz</p>
                                                                     <h3 class="font-display text-xl text-slate-900">Quiz #{{ $loop->iteration }}</h3>
-                                                                    <p class="mt-1 text-sm text-slate-500">{{ $module->title }}</p>
+                                                                    <p class="mt-1 text-sm text-slate-500">{{ $module->module_title }}</p>
                                                                 </div>
 
                                                                 <button
@@ -1113,7 +1113,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                                 <input type="hidden" name="form_scope" value="quiz_edit">
                                                                 <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
                                                                 <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
-                                                                <input type="hidden" name="question_context_id" value="{{ $question->id_question }}">
+                                                                <input type="hidden" name="question_context_id" value="{{ $question->id_quiz }}">
 
                                                                 <div>
                                                                     <label class="form-label">Question</label>
@@ -1198,7 +1198,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
 
                                             @forelse ($module->labQuestions as $labQuestion)
                                             @php
-                                            $labQuestionHasContext = (int) old('question_context_id') === $labQuestion->id_question;
+                                            $labQuestionHasContext = (int) old('question_context_id') === $labQuestion->id_lab;
                                             $labEditOpen = old('form_scope') === 'lab_edit' && $labQuestionHasContext;
                                             $sqlConfig = $isMysqlCourse ? json_decode($labQuestion->output, true) : null;
                                             $sqlExpectedRows = is_array($sqlConfig) ? ($sqlConfig['expected_result'] ?? []) : [];
@@ -1238,7 +1238,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                @click="openDeleteModal(@js(route('admin.contents.lab-questions.destroy', $labQuestion)), @js('lab #' . $loop->iteration . ' in &quot;' . $module->title . '&quot;'))"
+                                                                @click="openDeleteModal(@js(route('admin.contents.lab-questions.destroy', $labQuestion)), @js('lab #' . $loop->iteration . ' in &quot;' . $module->module_title . '&quot;'))"
                                                                 class="inline-flex items-center justify-center rounded-[14px] bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500">
                                                                 Delete
                                                             </button>
@@ -1275,7 +1275,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                                 <div>
                                                                     <p class="eyebrow">Edit Lab</p>
                                                                     <h3 class="font-display text-xl text-slate-900">Lab #{{ $loop->iteration }}</h3>
-                                                                    <p class="mt-1 text-sm text-slate-500">{{ $module->title }}</p>
+                                                                    <p class="mt-1 text-sm text-slate-500">{{ $module->module_title }}</p>
                                                                 </div>
 
                                                                 <button
@@ -1296,7 +1296,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                                 <input type="hidden" name="form_scope" value="lab_edit">
                                                                 <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
                                                                 <input type="hidden" name="module_context_id" value="{{ $module->id_module }}">
-                                                                <input type="hidden" name="question_context_id" value="{{ $labQuestion->id_question }}">
+                                                                <input type="hidden" name="question_context_id" value="{{ $labQuestion->id_lab }}">
 
                                                                 <div>
                                                                     <label class="form-label">Lab Question</label>
@@ -1404,7 +1404,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                             </div>
                             @empty
                             <div class="rounded-2xl border border-dashed border-slate-200 px-5 py-8 text-sm text-slate-500">
-                                No modules are available for this course yet.
+                                No module are available for this course yet.
                             </div>
                             @endforelse
                         </div>

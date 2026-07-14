@@ -53,7 +53,7 @@
                             <p class="eyebrow">Content {{ $courseIndex + 1 }}</p>
                             <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">{{ $course->course_title }}</h2>
                         </div>
-                        <p class="text-sm text-slate-500">{{ $course->modules->count() }} modules</p>
+                        <p class="text-sm text-slate-500">{{ $course->modules->count() }} module</p>
                     </div>
 
                     <div class="overflow-hidden rounded-[24px] border border-slate-200">
@@ -66,7 +66,7 @@
                         <div class="divide-y divide-slate-100 bg-white">
                             @forelse ($reports as $report)
                                 @php
-                                    $courseReport = $report['courses']->first(fn ($item) => $item['course']->id_course === $course->id_course);
+                                    $courseReport = $report['course']->first(fn ($item) => $item['course']->id_course === $course->id_course);
                                     $student = $report['student'];
                                     $detail = [
                                         'identity' => $student->identity_id,
@@ -74,10 +74,10 @@
                                         'class' => $student->getAttribute('class') ? 'Class ' . $student->getAttribute('class') : '-',
                                         'course' => $course->course_title,
                                         'contentPercent' => $courseReport['percent'] ?? 0,
-                                        'modules' => ($courseReport['modules'] ?? collect())->map(function ($moduleReport, $moduleIndex) {
+                                        'module' => ($courseReport['module'] ?? collect())->map(function ($moduleReport, $moduleIndex) {
                                             return [
                                                 'number' => $moduleIndex + 1,
-                                                'title' => $moduleReport['module']->title,
+                                                'title' => $moduleReport['module']->module_title,
                                                 'percent' => $moduleReport['percent'],
                                                 'status' => $moduleReport['status'],
                                                 'statusLabel' => match ($moduleReport['status']) {
@@ -170,7 +170,7 @@
                 </div>
 
                 <div class="space-y-3">
-                    <template x-for="module in detail.modules" :key="module.number">
+                    <template x-for="module in detail.module" :key="module.number">
                         <div class="rounded-[16px] border border-slate-200 bg-white p-4">
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                                 <div class="min-w-0">
@@ -228,7 +228,7 @@
                 class: '',
                 course: '',
                 contentPercent: 0,
-                modules: [],
+                module: [],
             },
             openDetail(detail) {
                 this.detail = detail;

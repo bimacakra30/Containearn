@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\LabQuestion;
 use App\Models\Module;
-use App\Models\Question;
+use App\Models\QuizQuestion;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -23,8 +24,8 @@ class PracticumContentController extends Controller
             ->with([
                 'modules' => fn ($query) => $query
                     ->with([
-                        'questions' => fn ($questionQuery) => $questionQuery->orderBy('id_question'),
-                        'labQuestions' => fn ($questionQuery) => $questionQuery->orderBy('id_question'),
+                        'quizQuestions' => fn ($questionQuery) => $questionQuery->orderBy('id_quiz'),
+                        'labQuestions' => fn ($questionQuery) => $questionQuery->orderBy('id_lab'),
                     ])
                     ->orderBy('id_module'),
             ])
@@ -33,7 +34,7 @@ class PracticumContentController extends Controller
             ->get();
 
         $questionCount = $courses->sum(
-            fn (Course $course) => $course->modules->sum(fn ($module) => $module->questions->count())
+            fn (Course $course) => $course->modules->sum(fn ($module) => $module->quizQuestions->count())
         );
         $labQuestionCount = $courses->sum(
             fn (Course $course) => $course->modules->sum(fn ($module) => $module->labQuestions->count())
@@ -111,23 +112,23 @@ class PracticumContentController extends Controller
     {
         $this->authorizeAdminAccess($request);
 
-        $module->questions()->create($this->validateQuestion($request));
+        $module->quizQuestions()->create($this->validateQuizQuestion($request));
 
         return redirect()->route('admin.contents.index')
             ->with('success', 'Quiz question created successfully.');
     }
 
-    public function updateQuestion(Request $request, Question $question): RedirectResponse
+    public function updateQuestion(Request $request, QuizQuestion $question): RedirectResponse
     {
         $this->authorizeAdminAccess($request);
 
-        $question->update($this->validateQuestion($request));
+        $question->update($this->validateQuizQuestion($request));
 
         return redirect()->route('admin.contents.index')
             ->with('success', 'Quiz question updated successfully.');
     }
 
-    public function destroyQuestion(Request $request, Question $question): RedirectResponse
+    public function destroyQuestion(Request $request, QuizQuestion $question): RedirectResponse
     {
         $this->authorizeAdminAccess($request);
 
@@ -181,8 +182,8 @@ class PracticumContentController extends Controller
     private function validateCourse(Request $request): array
     {
         $validated = $request->validate([
-            'course_title' => ['required', 'string', 'max:255'],
-            'docker_image' => ['required', 'string', 'max:255'],
+            'course_title' => ['required', 'string', 'max:50'],
+            'docker_image' => ['required', 'string', 'max:25'],
         ]);
 
         return [
@@ -194,15 +195,15 @@ class PracticumContentController extends Controller
     private function validateModule(Request $request, ?Module $module = null): array
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string'],
+            'title' => ['required', 'string', 'max:50'],
+            'description' => ['required', 'string', 'max:150'],
             'material_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'file_exe' => ['nullable', 'file', 'max:10240'],
             'time_limit' => ['required', 'integer', 'min:1', 'max:1440'],
         ]);
 
         $payload = [
-            'title' => $validated['title'],
+            'module_title' => $validated['title'],
             'description' => $validated['description'],
             'time_limit' => $validated['time_limit'],
         ];
@@ -212,9 +213,9 @@ class PracticumContentController extends Controller
                 $this->deleteModuleMaterial($module);
             }
 
-            $payload['material_pdf_path'] = $request
+            $payload['module_pdf_path'] = $request
                 ->file('material_pdf')
-                ->store('module-materials', 'public');
+                ->storeAs('m', Str::random(12).'.pdf', 'public');
         }
 
         if ($request->hasFile('file_exe')) {
@@ -230,14 +231,14 @@ class PracticumContentController extends Controller
         return $payload;
     }
 
-    private function validateQuestion(Request $request): array
+    private function validateQuizQuestion(Request $request): array
     {
         $validated = $request->validate([
-            'question' => ['required', 'string'],
-            'option_a' => ['required', 'string', 'max:255'],
-            'option_b' => ['required', 'string', 'max:255'],
-            'option_c' => ['required', 'string', 'max:255'],
-            'option_d' => ['required', 'string', 'max:255'],
+            'question' => ['required', 'string',],
+            'option_a' => ['required', 'string', 'max:200'],
+            'option_b' => ['required', 'string', 'max:200'],
+            'option_c' => ['required', 'string', 'max:200'],
+            'option_d' => ['required', 'string', 'max:200'],
             'correct_option' => ['required', 'in:a,b,c,d'],
         ]);
 
@@ -256,7 +257,7 @@ class PracticumContentController extends Controller
     private function validateLabQuestion(Request $request, ?Module $module = null): array
     {
         $validated = $request->validate([
-            'question' => ['required', 'string'],
+            'question' => ['required', 'string', 'max:150'],
             'output' => ['required', 'string'],
             'sql_mode' => ['nullable', 'in:direct_result,validation_query'],
             'validation_query' => ['nullable', 'string'],
@@ -351,8 +352,8 @@ class PracticumContentController extends Controller
 
     private function deleteModuleMaterial(Module $module): void
     {
-        if ($module->material_pdf_path) {
-            Storage::disk('public')->delete($module->material_pdf_path);
+        if ($module->module_pdf_path) {
+            Storage::disk('public')->delete($module->module_pdf_path);
         }
     }
 

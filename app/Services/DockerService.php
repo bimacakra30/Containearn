@@ -19,7 +19,7 @@ class DockerService
 
     public function startPythonContainer(string $containerName, ?string $image = null): array
     {
-        $image = $image ?: config('praktikum.default_python_image', 'python:3.12-slim');
+        $image = $image ?: config('praktikum.default_python_image', 'python:3.14.6');
 
         $p = new Process([
             $this->bin,
@@ -91,7 +91,7 @@ class DockerService
     public function startMysqlContainer(string $containerName, ?string $image = null, ?string $password = null, string $database = 'practicum'): array
     {
         $password = $password ?: bin2hex(random_bytes(12));
-        $image = $image ?: config('praktikum.default_mysql_image', 'mysql:8.0');
+        $image = $image ?: config('praktikum.default_mysql_image', 'mariadb:10.11.18');
 
         $p = new Process([
             $this->bin,
