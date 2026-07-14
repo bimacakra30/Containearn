@@ -1220,7 +1220,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                         <span class="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white">
                                                             Lab #{{ $loop->iteration }}
                                                         </span>
-                                                        <p class="text-sm font-medium leading-6 text-slate-800">{{ $labQuestion->question }}</p>
+                                                        <p class="text-sm font-medium leading-6 text-slate-800 whitespace-pre-wrap">{{ $labQuestion->question }}</p>
                                                     </div>
 
                                                     <div class="w-full space-y-3 lg:max-w-md">

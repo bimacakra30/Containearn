@@ -18,7 +18,7 @@
                         <span class="text-sm font-semibold text-slate-900">Question {{ $loop->iteration }}</span>
                         <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Correct</span>
                     </div>
-                    <p class="mt-3 text-sm leading-6 text-slate-600">{{ $question->question }}</p>
+                    <p class="mt-3 text-sm leading-6 text-slate-600 whitespace-pre-wrap">{{ $question->question }}</p>
                     @if (!empty($answer['submitted_code']))
                         <div class="mt-4 rounded-2xl bg-slate-950 p-4 text-sm text-slate-100">
                             <p class="mb-2 text-xs uppercase tracking-[0.25em] text-slate-400">Last submission</p>
@@ -72,7 +72,7 @@
             <div class="rounded-[16px] border border-slate-200 bg-white p-5">
                 <p class="eyebrow">Question {{ $currentIndex + 1 }} of {{ $questions->count() }}</p>
                 <h2 class="mt-2 text-xl font-semibold text-slate-900">Task</h2>
-                <p class="mt-3 text-sm leading-7 text-slate-600">{{ $currentQuestion?->question }}</p>
+                <p class="mt-3 text-sm leading-7 text-slate-600 whitespace-pre-wrap">{{ $currentQuestion?->question }}</p>
 
                 @if (($state['runtime'] ?? null) === 'python' && $module->file_exe)
                     @php

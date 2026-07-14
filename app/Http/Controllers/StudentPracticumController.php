@@ -238,7 +238,7 @@ class StudentPracticumController extends Controller
         );
 
         return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']).'#q'.$question->id_quiz)
-            ->with($isCorrect ? 'success' : 'error', $isCorrect ? 'Jawaban benar!' : 'Jawaban salah, coba lagi.');
+            ->with($isCorrect ? 'success' : 'error', $isCorrect ? 'Answer is correct!' : 'Answer is incorrect, please try again.');
     }
 
     public function run(Request $request, Module $module, DockerService $docker): RedirectResponse

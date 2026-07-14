@@ -77,7 +77,7 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                     <div class="border-b border-slate-200 p-5">
                         <p class="eyebrow">Course Outline</p>
                         <h2 class="mt-3 text-xl font-semibold leading-7 text-slate-950">{{ $module->module_title }}</h2>
-                        <p class="mt-2 text-sm leading-6 text-slate-500">{{ $module->description }}</p>
+                        <p class="mt-2 text-sm leading-6 text-slate-500 text-justify">{{ $module->description }}</p>
                         <div class="mt-5">
                             <div class="mb-2 flex items-center justify-between text-sm">
                                 <span class="font-medium text-slate-500">Progress</span>
@@ -209,7 +209,7 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                                     @endforeach
                                 </div>
                                 <div class="mt-4 flex justify-end">
-                                    <button type="submit" class="btn-primary px-6 py-2 text-sm">Submit Jawaban</button>
+                                    <button type="submit" class="btn-primary px-6 py-2 text-sm">Submit</button>
                                 </div>
                             </form>
                             @else
