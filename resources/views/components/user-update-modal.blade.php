@@ -1,10 +1,10 @@
 @props([
-    'show' => 'false',
-    'action' => "''",
-    'availableRoles' => [],
-    'roleLabels' => [],
-    'classOptions' => [],
-    'currentUserId' => null,
+'show' => 'false',
+'action' => "''",
+'availableRoles' => [],
+'roleLabels' => [],
+'classOptions' => [],
+'currentUserId' => null,
 ])
 
 <div
@@ -16,12 +16,10 @@
     x-transition:leave="ease-in duration-150"
     x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
-    class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
->
+    class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
     <div
         class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-        @click="{{ $show }} = false"
-    ></div>
+        @click="{{ $show }} = false"></div>
 
     <div
         x-show="{{ $show }}"
@@ -31,8 +29,7 @@
         x-transition:leave="ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-        class="glass relative z-10 w-full max-w-lg p-6 shadow-2xl"
-    >
+        class="glass relative z-10 w-full max-w-lg p-6 shadow-2xl">
         <div class="mb-5 flex items-start justify-between gap-4">
             <div>
                 <p class="eyebrow">Edit User</p>
@@ -69,7 +66,7 @@
                         class="form-input">
                         <option value="">Select class</option>
                         @foreach ($classOptions as $class)
-                            <option value="{{ $class }}">{{ $class }}</option>
+                        <option value="{{ $class }}">{{ $class }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -100,17 +97,28 @@
                         :disabled="editUser.id === {{ \Illuminate\Support\Js::from($currentUserId) }}"
                         class="form-input">
                         @foreach ($availableRoles as $role)
-                            <option value="{{ $role }}">
-                                {{ $roleLabels[$role] ?? ucfirst($role) }}
-                            </option>
+                        <option value="{{ $role }}">
+                            {{ $roleLabels[$role] ?? ucfirst($role) }}
+                        </option>
                         @endforeach
                     </select>
                     <p
                         x-show="editUser.id === {{ \Illuminate\Support\Js::from($currentUserId) }}"
                         x-cloak
-                        class="mt-1 text-xs text-slate-500"
-                    >
+                        class="mt-1 text-xs text-slate-500">
                     </p>
+                </div>
+
+                <div x-show="editUser.role !== 'superadmin'" x-cloak>
+                    <label class="form-label">Account Status</label>
+                    <select
+                        name="status"
+                        x-model="editUser.status"
+                        class="form-input">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Inactive accounts cannot log in.</p>
                 </div>
 
                 <div>

@@ -26,9 +26,21 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
-
         $user = Auth::user();
+
+        if ($user->isMahasiswa() && ! $user->isActive()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => __('auth.failed'),
+                ]);
+        }
+
+        $request->session()->regenerate();
 
         if (in_array($user->role, ['superadmin', 'dosen'])) {
             return redirect('/admin');

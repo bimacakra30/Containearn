@@ -8,7 +8,7 @@ use App\Http\Controllers\StudentPracticumController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/', fn () => match (auth()->user()->role) {
         'superadmin', 'dosen' => redirect()->route('admin.dashboard'),
         'mahasiswa' => view('mahasiswa.dashboard'),
@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/user', [UserController::class, 'store'])->name('admin.user.store');
         Route::patch('/user/{user}', [UserController::class, 'update'])->name('admin.user.update');
         Route::delete('/user/{user}', [UserController::class, 'destroy'])->name('admin.user.destroy');
+        Route::patch('/user/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('admin.user.toggle-status');
     });
 
     Route::middleware('role:mahasiswa')->group(function () {
@@ -64,6 +65,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/content/{module}', [StudentPracticumController::class, 'show'])->name('mahasiswa.content.show');
             Route::post('/content/{module}/start', [StudentPracticumController::class, 'start'])->name('mahasiswa.content.start');
             Route::post('/content/{module}/quiz', [StudentPracticumController::class, 'submitQuiz'])->name('mahasiswa.content.quiz');
+            Route::post('/content/{module}/quiz/start', [StudentPracticumController::class, 'startQuizAttempt'])->name('mahasiswa.content.quiz.start');
+            Route::post('/content/{module}/quiz/submit-all', [StudentPracticumController::class, 'submitQuizAttempt'])->name('mahasiswa.content.quiz.submit-all');
             Route::post('/content/{module}/run', [StudentPracticumController::class, 'run'])->name('mahasiswa.content.run');
             Route::post('/content/{module}/end', [StudentPracticumController::class, 'end'])->name('mahasiswa.content.end');
             Route::post('/content/{module}/next', [StudentPracticumController::class, 'next'])->name('mahasiswa.content.next');

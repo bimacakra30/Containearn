@@ -31,6 +31,7 @@
             email: '',
             role: 'mahasiswa',
             class: '',
+            status: 'active',
         },
         openEditModal(user) {
             this.editFormAction = user.action;
@@ -41,6 +42,7 @@
                 email: user.email,
                 role: user.role,
                 class: user.class,
+                status: user.status,
             };
             this.editModalOpen = true;
         },
@@ -61,6 +63,9 @@
                     <div class="notice-danger">
                         <p class="font-semibold">Validation failed. Please review the highlighted fields.</p>
                     </div>
+                @endif
+                @if (session('success'))
+                    <div class="notice-success">{{ session('success') }}</div>
                 @endif
 
                 <section class="glass p-6 space-y-5">
@@ -126,13 +131,14 @@
                         <table class="min-w-[980px] w-full text-left text-sm">
                             <thead class="bg-slate-50/90">
                                 <tr class="border-b border-slate-200 text-xs uppercase tracking-widest text-slate-400">
-                                    <th class="px-4 py-3 font-medium">User</th>
-                                    <th class="px-4 py-3 font-medium">Identity ID</th>
-                                    <th class="px-4 py-3 font-medium">Role</th>
-                                    <th class="px-4 py-3 font-medium">Class</th>
-                                    <th class="px-4 py-3 font-medium">Joined</th>
-                                    <th class="px-4 py-3 font-medium">Actions</th>
-                                </tr>
+                                <th class="px-4 py-3 font-medium">User</th>
+                                <th class="px-4 py-3 font-medium">Identity ID</th>
+                                <th class="px-4 py-3 font-medium">Role</th>
+                                <th class="px-4 py-3 font-medium">Status</th>
+                                <th class="px-4 py-3 font-medium">Class</th>
+                                <th class="px-4 py-3 font-medium">Joined</th>
+                                <th class="px-4 py-3 font-medium">Actions</th>
+                            </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 @forelse ($users as $user)
@@ -156,6 +162,17 @@
                                                 {{ $roleLabels[$user->role] ?? ucfirst($user->role) }}
                                             </span>
                                         </td>
+                                        <td class="px-4 py-4">
+                                            @if ($user->role === 'superadmin')
+                                                <span class="text-xs text-slate-400">—</span>
+                                            @else
+                                                @php $isActive = ($user->status ?? 'inactive') === 'active'; @endphp
+                                                <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold
+                                                    {{ $isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-600' }}">
+                                                    {{ $isActive ? 'Active' : 'Inactive' }}
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-4 text-slate-600">
                                             {{ $user->role === 'mahasiswa' ? ($user->getAttribute('class') ?? '—') : '—' }}
                                         </td>
@@ -173,6 +190,7 @@
                                                             email: @js($user->email),
                                                             role: @js($user->role),
                                                             class: @js($user->getAttribute('class')),
+                                                            status: @js($user->status ?? 'inactive'),
                                                         })"
                                                         class="btn-secondary px-3 py-2 text-xs">
                                                         Edit
@@ -205,7 +223,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+                                        <td colspan="7" class="px-4 py-10 text-center text-slate-500">
                                             No users are available to display.
                                         </td>
                                     </tr>

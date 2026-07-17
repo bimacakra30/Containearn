@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
@@ -22,6 +23,8 @@ class User extends Authenticatable
         'password',
         'role',
         'class',
+        'status',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -31,17 +34,31 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'password'          => 'hashed',
     ];
+    
+    public function hasVerifiedEmail(): bool
+    {
+        if ($this->role !== 'mahasiswa') {
+            return true;
+        }
 
-    public function isAdmin()
+        return $this->email_verified_at !== null;
+    }
+
+    public function isAdmin(): bool
     {
         return in_array($this->role, ['superadmin', 'dosen']);
     }
 
-    public function isMahasiswa()
+    public function isMahasiswa(): bool
     {
         return $this->role === 'mahasiswa';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
     }
 
     public function moduleProgresses(): HasMany

@@ -32,11 +32,6 @@ return [
             'active' => ['admin.profile'],
         ],
         [
-            'label' => 'Users Management',
-            'route' => 'admin.user.index',
-            'active' => ['admin.user.*'],
-        ],
-        [
             'label' => 'Practicum Contents',
             'route' => 'admin.contents.index',
             'active' => ['admin.contents.*'],

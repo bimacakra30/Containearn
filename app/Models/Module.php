@@ -19,6 +19,8 @@ class Module extends Model
         'module_pdf_path',
         'file_exe',
         'time_limit',
+        'quiz_time_limit',
+        'quiz_max_attempts',
     ];
 
     public function course(): BelongsTo
@@ -39,5 +41,15 @@ class Module extends Model
     public function progresses(): HasMany
     {
         return $this->hasMany(ModuleProgress::class, 'id_module', 'id_module');
+    }
+
+    public function quizAttempts(): HasMany
+    {
+        return $this->hasMany(QuizAttempt::class, 'id_module', 'id_module');
+    }
+
+    public function hasQuizTimer(): bool
+    {
+        return $this->quiz_time_limit !== null && $this->quiz_time_limit > 0;
     }
 }

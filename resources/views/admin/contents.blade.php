@@ -408,6 +408,39 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                             @endif
                                         </div>
 
+                                        <div>
+                                            <label class="form-label">Quiz Time Limit (Minutes) <span class="text-slate-400 font-normal">optional</span></label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="300"
+                                                name="quiz_time_limit"
+                                                placeholder="No timer"
+                                                value="{{ $moduleCreateOpen ? old('quiz_time_limit') : '' }}"
+                                                class="form-input">
+                                            @if ($moduleCreateOpen)
+                                            @error('quiz_time_limit')
+                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                            @enderror
+                                            @endif
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Max Quiz Attempts</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="10"
+                                                name="quiz_max_attempts"
+                                                value="{{ $moduleCreateOpen ? old('quiz_max_attempts', 1) : 1 }}"
+                                                class="form-input">
+                                            @if ($moduleCreateOpen)
+                                            @error('quiz_max_attempts')
+                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                            @enderror
+                                            @endif
+                                        </div>
+
                                         <div class="md:col-span-2">
                                             <label class="form-label">Description</label>
                                             <textarea
@@ -664,6 +697,39 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             class="form-input">
                                                         @if ($moduleEditOpen)
                                                         @error('time_limit')
+                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                        @enderror
+                                                        @endif
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Quiz Time Limit (Minutes) <span class="text-slate-400 font-normal">optional</span></label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max="300"
+                                                            name="quiz_time_limit"
+                                                            placeholder="No timer"
+                                                            value="{{ $moduleEditOpen ? old('quiz_time_limit', $module->quiz_time_limit) : $module->quiz_time_limit }}"
+                                                            class="form-input">
+                                                        @if ($moduleEditOpen)
+                                                        @error('quiz_time_limit')
+                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                        @enderror
+                                                        @endif
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Max Quiz Attempts</label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max="10"
+                                                            name="quiz_max_attempts"
+                                                            value="{{ $moduleEditOpen ? old('quiz_max_attempts', $module->quiz_max_attempts) : $module->quiz_max_attempts }}"
+                                                            class="form-input">
+                                                        @if ($moduleEditOpen)
+                                                        @error('quiz_max_attempts')
                                                         <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
                                                         @enderror
                                                         @endif

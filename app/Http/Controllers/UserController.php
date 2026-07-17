@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -50,6 +51,9 @@ class UserController extends Controller
 
         $this->authorizeRoleAssignment($actor, $validated['role']);
 
+        $validated['status'] = 'active';
+        $validated['email_verified_at'] = now();
+
         User::create($validated);
 
         return back()->with('success', 'User created successfully.');
@@ -60,6 +64,11 @@ class UserController extends Controller
         $actor = $this->authorizeAdminAccess($request);
         $validated = $this->validateUserData($request, $user);
         $this->authorizeRoleAssignment($actor, $validated['role']);
+
+        if ($actor->role === 'superadmin' && $user->role !== 'superadmin' && isset($validated['status'])) {
+            $user->update(['status' => $validated['status']]);
+        }
+        unset($validated['status']);
 
         $user->update($validated);
 
@@ -113,16 +122,17 @@ class UserController extends Controller
                 'max:18',
                 Rule::unique('user', 'identity_id')->ignore($user?->getKey(), 'id_user'),
             ],
-            'name' => ['required', 'string', 'max:60'],
-            'email' => [
+            'name'     => ['required', 'string', 'max:60'],
+            'email'    => [
                 'required',
                 'email',
                 'max:40',
                 Rule::unique('user', 'email')->ignore($user?->getKey(), 'id_user'),
             ],
-            'role' => ['required', Rule::in(['superadmin', 'dosen', 'mahasiswa'])],
-            'class' => ['nullable', Rule::requiredIf($request->input('role') === 'mahasiswa'), Rule::in(['A', 'B', 'C', 'D'])],
+            'role'     => ['required', Rule::in(['superadmin', 'dosen', 'mahasiswa'])],
+            'class'    => ['nullable', Rule::requiredIf($request->input('role') === 'mahasiswa'), Rule::in(['A', 'B', 'C', 'D'])],
             'password' => $passwordRules,
+            'status'   => ['nullable', Rule::in(['active', 'inactive'])],
         ]);
 
         if ($validated['role'] !== 'mahasiswa') {

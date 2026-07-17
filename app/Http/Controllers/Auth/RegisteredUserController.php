@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -44,12 +45,10 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
             'role' => 'mahasiswa',
             'class' => $request->class,
+            'status' => 'inactive',
         ]);
-
+        Auth::login($user);
         event(new Registered($user));
-
-        return redirect()
-            ->route('login')
-            ->with('success', 'Registration successful.');
+        return redirect()->route('verification.notice');
     }
 }

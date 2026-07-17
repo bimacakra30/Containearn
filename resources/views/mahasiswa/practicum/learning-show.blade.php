@@ -143,7 +143,10 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                     </div>
                     @endif
 
-                    @if (session('error')) <div class="notice-danger">{{ session('error') }}</div> @endif
+                    @php $sessionError = session('error'); @endphp
+                    @if ($sessionError && !str_contains($sessionError, 'No active quiz attempt'))
+                    <div class="notice-danger">{{ $sessionError }}</div>
+                    @endif
                     @if ($errors->any()) <div class="notice-danger">{{ $errors->first() }}</div> @endif
 
 
@@ -164,11 +167,204 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
 
 
                     @elseif ($activeView === 'quiz')
+                    @php
+                    $quizTimerMs = $activeAttempt?->expires_at
+                    ? $activeAttempt->expires_at->getTimestampMs()
+                    : null;
+                    @endphp
+                    @if (! $activeAttempt && $canStartNewAttempt)
+                    <section class="flex min-h-[60vh] items-center justify-center py-12">
+                        <div class="w-full max-w-xl text-center space-y-6">
+                            <div class="rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm space-y-5">
+                                <div>
+                                    <p class="eyebrow">Module Quiz</p>
+                                    <h3 class="mt-2 text-2xl font-bold text-slate-900">{{ $module->module_title }}</h3>
+                                </div>
+
+                                <div class="flex flex-wrap justify-center gap-4 text-sm">
+                                    <div class="flex flex-col items-center gap-1 rounded-[14px] border border-slate-100 bg-slate-50 px-5 py-3">
+                                        <span class="text-xs text-slate-400 uppercase tracking-wider">Questions</span>
+                                        <span class="text-xl font-bold text-slate-800">{{ $quizTotal }}</span>
+                                    </div>
+                                    @if ($module->quiz_time_limit)
+                                    <div class="flex flex-col items-center gap-1 rounded-[14px] border border-amber-100 bg-amber-50 px-5 py-3">
+                                        <span class="text-xs text-amber-500 uppercase tracking-wider">Time Limit</span>
+                                        <span class="text-xl font-bold text-amber-700">{{ $module->quiz_time_limit }} min</span>
+                                    </div>
+                                    @endif
+                                    <div class="flex flex-col items-center gap-1 rounded-[14px] border border-slate-100 bg-slate-50 px-5 py-3">
+                                        <span class="text-xs text-slate-400 uppercase tracking-wider">Attempts Left</span>
+                                        <span class="text-xl font-bold text-slate-800">{{ $attemptsLeft }} / {{ $maxAttempts }}</span>
+                                    </div>
+                                </div>
+
+                                @if ($totalAttempts > 0)
+                                <div class="rounded-[12px] border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                    Previous best: <strong class="text-slate-800">{{ $correctCount }} / {{ $quizTotal }}</strong> correct
+                                </div>
+                                @endif
+
+                                <form method="POST" action="{{ route('mahasiswa.content.quiz.start', $module) }}">
+                                    @csrf
+                                    <button type="submit" class="btn-primary w-full py-3 text-base">
+                                        Start Quiz Attempt {{ $totalAttempts + 1 }} →
+                                    </button>
+                                </form>
+
+                                @if ($module->quiz_time_limit)
+                                <p class="text-xs text-slate-400">Timer will start immediately when you click the button above.</p>
+                                @endif
+                            </div>
+                        </div>
+                    </section>
+
+                    @elseif ($activeAttempt)
+                    <section class="space-y-4">
+                        <div class="sticky top-[88px] z-20 rounded-[18px] border border-slate-200 bg-white/95 px-6 py-4 shadow-sm backdrop-blur">
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="eyebrow">Module Quiz</p>
+                                    <h3 class="mt-1 text-xl font-bold text-slate-900">{{ $module->module_title }}</h3>
+                                    <p class="mt-1 text-sm text-slate-500">
+                                        Attempt <strong class="text-slate-800">{{ $totalAttempts }}</strong> of <strong class="text-slate-800">{{ $maxAttempts }}</strong>
+                                        @if ($module->quiz_time_limit)
+                                        &nbsp;·&nbsp; {{ $module->quiz_time_limit }} min
+                                        @endif
+                                    </p>
+                                </div>
+                                @if ($quizTimerMs)
+                                <div class="rounded-[14px] border border-amber-200 bg-amber-50 px-5 py-3 text-center min-w-[110px]">
+                                    <p class="eyebrow text-amber-600">Time Left</p>
+                                    <p id="quiz-timer"
+                                        data-expires-at="{{ $quizTimerMs }}"
+                                        class="mt-1 text-2xl font-bold text-amber-700 tabular-nums">
+                                        --:--
+                                    </p>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <form method="POST"
+                            action="{{ route('mahasiswa.content.quiz.submit-all', $module) }}"
+                            id="quiz-submit-all-form">
+                            @csrf
+
+                            <div class="space-y-4">
+                                @forelse ($quizQuestions as $question)
+                                @php
+                                $ans = $quizAnswers[$question->id_quiz] ?? [];
+                                $isAnswered = $ans['is_answered'] ?? false;
+                                $selected = $ans['selected_option'] ?? null;
+                                $isCorrect = $ans['is_correct'] ?? false;
+                                $options = ['a' => $question->option_a, 'b' => $question->option_b, 'c' => $question->option_c, 'd' => $question->option_d];
+                                @endphp
+                                <article id="q{{ $question->id_quiz }}" class="scroll-mt-44 rounded-[18px] border border-slate-200 bg-white p-6">
+                                    <div class="flex items-start justify-between gap-4 mb-5">
+                                        <div class="flex-1">
+                                            <span class="chip">Question {{ $loop->iteration }}</span>
+                                            <p class="mt-3 text-base leading-7 text-slate-800">{{ $question->question }}</p>
+                                        </div>
+                                        <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-400">
+                                            Unanswered
+                                        </span>
+                                    </div>
+                                    <div class="space-y-3" id="options-{{ $question->id_quiz }}">
+                                        @foreach ($options as $key => $label)
+                                        <label class="flex cursor-pointer items-center gap-3 rounded-[14px] border px-4 py-3 transition border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50"
+                                            data-option-label for="opt-{{ $question->id_quiz }}-{{ $key }}">
+                                            <input type="radio"
+                                                id="opt-{{ $question->id_quiz }}-{{ $key }}"
+                                                name="answers[{{ $question->id_quiz }}]"
+                                                value="{{ $key }}"
+                                                class="h-4 w-4 accent-emerald-500"
+                                                onchange="markAnswered({{ $question->id_quiz }})">
+                                            <span class="text-sm font-medium text-slate-700">
+                                                <span class="mr-2 font-bold uppercase text-slate-400">{{ $key }}.</span>{{ $label }}
+                                            </span>
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </article>
+                                @empty
+                                <div class="rounded-[18px] border border-slate-200 bg-white p-8 text-center text-slate-500">
+                                    No quiz questions for this module.
+                                </div>
+                                @endforelse
+                            </div>
+
+                            <div class="mt-4 flex justify-center">
+                                <button type="button"
+                                    onclick="openSubmitModal()"
+                                    class="btn-primary px-10 py-3 text-base">
+                                    Submit Quiz →
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="quiz-submit-modal"
+                            class="fixed inset-0 z-50 flex items-center justify-center px-4"
+                            style="display:none!important"
+                            aria-modal="true" role="dialog">
+
+                            <div id="quiz-modal-backdrop"
+                                class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+                                style="opacity:0;transition:opacity .2s ease"
+                                onclick="closeSubmitModal()"></div>
+
+                            <div id="quiz-modal-panel"
+                                class="relative z-10 w-full max-w-sm rounded-[24px] bg-white p-8 shadow-2xl text-center"
+                                style="opacity:0;transform:scale(.95);transition:opacity .2s ease,transform .2s ease">
+
+                                <p class="text-base font-semibold text-slate-900">Submit your answers?</p>
+                                <p class="mt-1.5 text-sm text-slate-500">This cannot be undone.</p>
+
+                                <div class="mt-6 flex gap-3">
+                                    <button type="button" onclick="closeSubmitModal()"
+                                        class="btn-secondary flex-1 py-2.5">Cancel</button>
+                                    <button type="button" onclick="doSubmitQuiz()"
+                                        class="btn-primary flex-1 py-2.5">Submit →</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </section>
+
+                    @else
                     <section class="space-y-4">
                         <div class="rounded-[18px] border border-slate-200 bg-white px-6 py-5">
-                            <p class="eyebrow">Module Quiz</p>
-                            <h3 class="mt-1 text-2xl font-semibold text-slate-950">Answer all questions correctly to continue.</h3>
-                            <p class="mt-1 text-sm text-slate-500">{{ $correctCount }} from {{ $quizTotal }} questions are correct.</p>
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="eyebrow">Module Quiz — Results</p>
+                                    <h3 class="mt-1 text-xl font-bold text-slate-900">{{ $module->module_title }}</h3>
+                                    <div class="mt-2 flex flex-wrap gap-3 text-sm text-slate-500">
+                                        <span>Attempt <strong class="text-slate-800">{{ $totalAttempts }}</strong> of <strong class="text-slate-800">{{ $maxAttempts }}</strong></span>
+                                        <span class="text-slate-300">|</span>
+                                        <span><strong class="text-slate-800">{{ $correctCount }}</strong> / {{ $quizTotal }} correct</span>
+                                    </div>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    <p class="text-3xl font-bold {{ $correctCount === $quizTotal ? 'text-emerald-600' : 'text-slate-700' }}">
+                                        {{ $quizTotal > 0 ? round($correctCount / $quizTotal * 100) : 0 }}%
+                                    </p>
+                                    <p class="text-xs text-slate-400 mt-0.5">Score</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-5 flex flex-wrap gap-3">
+                                @if ($canStartNewAttempt)
+                                <form method="POST" action="{{ route('mahasiswa.content.quiz.start', $module) }}">
+                                    @csrf
+                                    <button type="submit" class="btn-primary">
+                                        Retry — Attempt {{ $totalAttempts + 1 }} →
+                                    </button>
+                                </form>
+                                @else
+                                <div class="rounded-[14px] border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
+                                    <strong>No attempts remaining.</strong> You have used all {{ $maxAttempts }} attempt(s).
+                                </div>
+                                @endif
+                            </div>
                         </div>
 
                         @forelse ($quizQuestions as $question)
@@ -176,6 +372,7 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                         $ans = $quizAnswers[$question->id_quiz] ?? [];
                         $selected = $ans['selected_option'] ?? null;
                         $isCorrect = $ans['is_correct'] ?? false;
+                        $isAnswered = $ans['is_answered'] ?? false;
                         $options = ['a' => $question->option_a, 'b' => $question->option_b, 'c' => $question->option_c, 'd' => $question->option_d];
                         @endphp
                         <article id="q{{ $question->id_quiz }}" class="scroll-mt-28 rounded-[18px] border border-slate-200 bg-white p-6">
@@ -184,74 +381,129 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                                     <span class="chip">Question {{ $loop->iteration }}</span>
                                     <p class="mt-3 text-base leading-7 text-slate-800">{{ $question->question }}</p>
                                 </div>
-                                @if ($selected)
+                                @if ($isAnswered)
                                 <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {{ $isCorrect ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600' }}">
                                     {{ $isCorrect ? '✓ Correct' : '✗ Incorrect' }}
                                 </span>
+                                @else
+                                <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-400">
+                                    Not answered
+                                </span>
                                 @endif
                             </div>
-
-                            @if (!$isCorrect)
-                            <form method="POST" action="{{ route('mahasiswa.content.quiz', $module) }}" class="mt-5">
-                                @csrf
-                                <input type="hidden" name="id_quiz" value="{{ $question->id_quiz }}">
-                                <div class="space-y-3">
-                                    @foreach ($options as $key => $label)
-                                    <label class="flex cursor-pointer items-center gap-3 rounded-[14px] border px-4 py-3 transition
-                            {{ $selected === $key ? ($isCorrect ? 'border-emerald-400 bg-emerald-50' : 'border-rose-400 bg-rose-50') : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50' }}">
-                                        <input type="radio" name="selected_option" value="{{ $key }}"
-                                            {{ $selected === $key ? 'checked' : '' }}
-                                            class="h-4 w-4 accent-emerald-500">
-                                        <span class="text-sm font-medium text-slate-700">
-                                            <span class="mr-2 font-bold uppercase text-slate-400">{{ $key }}.</span>{{ $label }}
-                                        </span>
-                                    </label>
-                                    @endforeach
-                                </div>
-                                <div class="mt-4 flex justify-end">
-                                    <button type="submit" class="btn-primary px-6 py-2 text-sm">Submit</button>
-                                </div>
-                            </form>
-                            @else
                             <div class="mt-5 space-y-3">
                                 @foreach ($options as $key => $label)
-                                <div class="flex items-center gap-3 rounded-[14px] border px-4 py-3
-                        {{ $key === $question->correct_option ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 bg-slate-50' }}">
-                                    <span class="h-4 w-4 rounded-full border-2 {{ $key === $question->correct_option ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300' }}"></span>
-                                    <span class="text-sm font-medium {{ $key === $question->correct_option ? 'text-emerald-800' : 'text-slate-400' }}">
+                                @php
+                                $isSelected = $selected === $key;
+                                $styleClass = match(true) {
+                                $isSelected && $isCorrect => 'border-emerald-400 bg-emerald-50',
+                                $isSelected && !$isCorrect => 'border-rose-400 bg-rose-50',
+                                default => 'border-slate-100 bg-slate-50',
+                                };
+                                @endphp
+                                <div class="flex items-center gap-3 rounded-[14px] border px-4 py-3 {{ $styleClass }}">
+                                    <span class="h-4 w-4 shrink-0 rounded-full border-2 {{ $isSelected ? ($isCorrect ? 'border-emerald-500 bg-emerald-500' : 'border-rose-500 bg-rose-500') : 'border-slate-300' }}"></span>
+                                    <span class="text-sm font-medium {{ $isSelected ? ($isCorrect ? 'text-emerald-800' : 'text-rose-800') : 'text-slate-500' }}">
                                         <span class="mr-2 font-bold uppercase">{{ $key }}.</span>{{ $label }}
                                     </span>
                                 </div>
                                 @endforeach
                             </div>
-                            @endif
                         </article>
                         @empty
                         <div class="rounded-[18px] border border-slate-200 bg-white p-8 text-center text-slate-500">
-                            Belum ada soal quiz untuk modul ini.
+                            No quiz questions for this module.
                         </div>
                         @endforelse
-
-                        @if ($quizAllCorrect)
-                        <div class="rounded-[18px] border border-emerald-200 bg-emerald-50 p-6 text-center">
-                            <p class="text-lg font-semibold text-emerald-800">All answers are correct! 🎉</p>
-                            <p class="mt-1 text-sm text-emerald-600">
-                                @if ($hasLab)
-                                You can now proceed to the practicum.
-                                @else
-                                You can now view the summary.
-                                @endif
-                            </p>
-                            <div class="mt-4">
-                                @if ($hasLab)
-                                <a href="{{ route('mahasiswa.content.show', ['module' => $module, 'view' => 'lab']) }}" class="btn-primary">Continue to Practicum →</a>
-                                @else
-                                <a href="{{ route('mahasiswa.content.show', ['module' => $module, 'view' => 'summary']) }}" class="btn-primary">View Summary →</a>
-                                @endif
-                            </div>
-                        </div>
-                        @endif
                     </section>
+                    @endif
+
+                    @if ($activeAttempt)
+                    @push('scripts')
+                    <script>
+                        (function() {
+                            window.markAnswered = function(idQuiz) {
+                                const article = document.getElementById('q' + idQuiz);
+                                if (!article) return;
+                                const badge = article.querySelector('.shrink-0');
+                                if (badge) {
+                                    badge.textContent = '✓ Answered';
+                                    badge.className = 'shrink-0 rounded-full px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-600';
+                                }
+                            };
+
+                            const modal = document.getElementById('quiz-submit-modal');
+                            const backdrop = document.getElementById('quiz-modal-backdrop');
+                            const panel = document.getElementById('quiz-modal-panel');
+
+                            window.openSubmitModal = function() {
+                                modal.style.removeProperty('display');
+                                requestAnimationFrame(() => {
+                                    backdrop.style.opacity = '1';
+                                    panel.style.opacity = '1';
+                                    panel.style.transform = 'scale(1)';
+                                });
+                                document.addEventListener('keydown', onEscKey);
+                            };
+
+                            window.closeSubmitModal = function() {
+                                backdrop.style.opacity = '0';
+                                panel.style.opacity = '0';
+                                panel.style.transform = 'scale(.95)';
+                                setTimeout(() => {
+                                    modal.style.display = 'none';
+                                }, 200);
+                                document.removeEventListener('keydown', onEscKey);
+                            };
+
+                            window.doSubmitQuiz = function() {
+                                const form = document.getElementById('quiz-submit-all-form');
+                                if (form) form.submit();
+                            };
+
+                            function onEscKey(e) {
+                                if (e.key === 'Escape') closeSubmitModal();
+                            }
+
+                            @if($quizTimerMs)
+                            const timerEl = document.getElementById('quiz-timer');
+                            const expiresAt = {
+                                {
+                                    $quizTimerMs
+                                }
+                            };
+
+                            function updateTimer() {
+                                const remaining = Math.max(0, expiresAt - Date.now());
+                                const mins = String(Math.floor(remaining / 60000)).padStart(2, '0');
+                                const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+                                timerEl.textContent = mins + ':' + secs;
+
+                                if (remaining <= 0) {
+                                    timerEl.textContent = '00:00';
+                                    timerEl.classList.add('!text-rose-700');
+                                    const form = document.getElementById('quiz-submit-all-form');
+                                    if (form) {
+                                        form.removeAttribute('onsubmit');
+                                        form.submit();
+                                    }
+                                    return;
+                                }
+
+                                if (remaining < 60000) {
+                                    timerEl.classList.remove('text-amber-700');
+                                    timerEl.classList.add('text-rose-700');
+                                }
+
+                                setTimeout(updateTimer, 500);
+                            }
+
+                            updateTimer();
+                            @endif
+                        })();
+                    </script>
+                    @endpush
+                    @endif
 
 
                     @elseif ($activeView === 'summary')

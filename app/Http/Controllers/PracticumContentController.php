@@ -195,17 +195,21 @@ class PracticumContentController extends Controller
     private function validateModule(Request $request, ?Module $module = null): array
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:50'],
-            'description' => ['required', 'string'],
-            'material_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
-            'file_exe' => ['nullable', 'file', 'max:10240'],
-            'time_limit' => ['required', 'integer', 'min:1', 'max:1440'],
+            'title'              => ['required', 'string', 'max:50'],
+            'description'        => ['required', 'string'],
+            'material_pdf'       => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+            'file_exe'           => ['nullable', 'file', 'max:10240'],
+            'time_limit'         => ['required', 'integer', 'min:1', 'max:1440'],
+            'quiz_time_limit'    => ['nullable', 'integer', 'min:1', 'max:300'],
+            'quiz_max_attempts'  => ['required', 'integer', 'min:1', 'max:10'],
         ]);
 
         $payload = [
-            'module_title' => $validated['title'],
-            'description' => $validated['description'],
-            'time_limit' => $validated['time_limit'],
+            'module_title'      => $validated['title'],
+            'description'       => $validated['description'],
+            'time_limit'        => $validated['time_limit'],
+            'quiz_time_limit'   => $validated['quiz_time_limit'] ?? null,
+            'quiz_max_attempts' => $validated['quiz_max_attempts'],
         ];
 
         if ($request->hasFile('material_pdf')) {

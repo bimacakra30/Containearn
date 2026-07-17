@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\LabQuestion;
 use App\Models\Module;
 use App\Models\ModuleProgress;
+use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
 use App\Models\QuestionProgress;
 use App\Models\QuizProgress;
@@ -106,22 +107,47 @@ class StudentPracticumController extends Controller
         $activeView = in_array($activeView, $validViews, true) ? $activeView : 'material';
 
         $quizQuestions = $module->quizQuestions->values();
-        $quizProgresses = QuizProgress::query()
+        $activeAttempt = $this->findActiveQuizAttempt($user, $module);
+        $latestAttempt = $activeAttempt ?? QuizAttempt::query()
             ->where('id_user', $user->getKey())
-            ->whereIn('id_quiz', $quizQuestions->pluck('id_quiz'))
-            ->get()
-            ->keyBy('id_quiz');
+            ->where('id_module', $module->getKey())
+            ->whereNotNull('submitted_at')
+            ->orderByDesc('attempt_number')
+            ->first();
+
+        $totalAttempts = QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
+            ->count();
+
+        $maxAttempts    = max(1, (int) $module->quiz_max_attempts);
+        $attemptsLeft   = max(0, $maxAttempts - $totalAttempts);
+        $canStartNewAttempt = $activeAttempt === null && $attemptsLeft > 0;
+
+        $quizProgresses = $latestAttempt
+            ? QuizProgress::query()
+                ->where('id_attempt', $latestAttempt->id_attempt)
+                ->whereIn('id_quiz', $quizQuestions->pluck('id_quiz'))
+                ->get()
+                ->keyBy('id_quiz')
+            : collect();
 
         $quizAnswers = $quizQuestions->mapWithKeys(fn (QuizQuestion $q) => [
             $q->id_quiz => [
                 'selected_option' => $quizProgresses->get($q->id_quiz)?->selected_option,
-                'is_correct' => $quizProgresses->get($q->id_quiz)?->is_correct ?? false,
+                'is_correct'      => $quizProgresses->get($q->id_quiz)?->is_correct ?? false,
+                'is_answered'     => $quizProgresses->has($q->id_quiz),
             ],
         ])->all();
 
-        $correctCount = $quizProgresses->where('is_correct', true)->count();
-        $quizTotal = $quizQuestions->count();
-        $quizAllCorrect = $quizTotal === 0 || $correctCount >= $quizTotal;
+        $correctCount   = $quizProgresses->where('is_correct', true)->count();
+        $quizTotal      = $quizQuestions->count();
+        $hasCompletedAttempt = QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
+            ->whereNotNull('submitted_at')
+            ->exists();
+        $quizAllCorrect = $quizTotal === 0 || $hasCompletedAttempt;
         $labQuestions = $module->labQuestions->values();
         $hasLab = $labQuestions->isNotEmpty();
         $runtimeState = [];
@@ -184,29 +210,76 @@ class StudentPracticumController extends Controller
         );
 
         return view('mahasiswa.practicum.show', [
-            'module' => $module,
-            'quizQuestions' => $quizQuestions,
-            'quizAnswers' => $quizAnswers,
-            'quizAllCorrect' => $quizAllCorrect,
-            'correctCount' => $correctCount,
-            'questions' => $labQuestions,
-            'currentIndex' => $selectedIndex,
-            'checkpointIndex' => $checkpointIndex,
-            'currentQuestion' => $currentQuestion,
-            'currentAnswer' => $currentAnswer,
-            'selectedQuestionIndex' => $selectedIndex,
-            'codeDraft' => old('code', $currentAnswer['submitted_code'] ?? ''),
-            'state' => $state,
-            'isCompleted' => $isCompleted,
-            'hasLab' => $hasLab,
-            'canOpenSummary' => $canOpenSummary,
-            'moduleProgress' => $moduleProgress,
-            'editorLanguage' => $editorLanguage,
-            'editorFilename' => $editorFilename,
-            'canContinue' => ! $isCompleted && $selectedIndex <= $checkpointIndex && ($currentAnswer['is_correct'] ?? false),
-            'sessionExpiresAt' => $isCompleted ? null : data_get($state, 'session_expires_at'),
-            'sessionSignature' => data_get($state, 'session_signature'),
+            'module'               => $module,
+            'quizQuestions'        => $quizQuestions,
+            'quizAnswers'          => $quizAnswers,
+            'quizAllCorrect'       => $quizAllCorrect,
+            'correctCount'         => $correctCount,
+            'questions'            => $labQuestions,
+            'currentIndex'         => $selectedIndex,
+            'checkpointIndex'      => $checkpointIndex,
+            'currentQuestion'      => $currentQuestion,
+            'currentAnswer'        => $currentAnswer,
+            'selectedQuestionIndex'=> $selectedIndex,
+            'codeDraft'            => old('code', $currentAnswer['submitted_code'] ?? ''),
+            'state'                => $state,
+            'isCompleted'          => $isCompleted,
+            'hasLab'               => $hasLab,
+            'canOpenSummary'       => $canOpenSummary,
+            'moduleProgress'       => $moduleProgress,
+            'editorLanguage'       => $editorLanguage,
+            'editorFilename'       => $editorFilename,
+            'canContinue'          => ! $isCompleted && $selectedIndex <= $checkpointIndex && ($currentAnswer['is_correct'] ?? false),
+            'sessionExpiresAt'     => $isCompleted ? null : data_get($state, 'session_expires_at'),
+            'sessionSignature'     => data_get($state, 'session_signature'),
+            'activeAttempt'        => $activeAttempt,
+            'latestAttempt'        => $latestAttempt,
+            'totalAttempts'        => $totalAttempts,
+            'maxAttempts'          => $maxAttempts,
+            'attemptsLeft'         => $attemptsLeft,
+            'canStartNewAttempt'   => $canStartNewAttempt,
+            'hasCompletedAttempt'  => $hasCompletedAttempt,
         ]);
+    }
+
+    public function startQuizAttempt(Request $request, Module $module): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($this->findProgress($user, $module) === null) {
+            return redirect()->route('mahasiswa.content.index')
+                ->with('error', 'Start the module first.');
+        }
+        if ($this->findActiveQuizAttempt($user, $module) !== null) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+                ->with('error', 'You already have an active quiz attempt.');
+        }
+
+        $maxAttempts   = max(1, (int) $module->quiz_max_attempts);
+        $totalAttempts = QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
+            ->count();
+
+        if ($totalAttempts >= $maxAttempts) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+                ->with('error', 'You have used all your quiz attempts.');
+        }
+
+        $expiresAt = $module->hasQuizTimer()
+            ? now()->addMinutes($module->quiz_time_limit)
+            : null;
+
+        QuizAttempt::create([
+            'id_user'        => $user->getKey(),
+            'id_module'      => $module->getKey(),
+            'attempt_number' => $totalAttempts + 1,
+            'started_at'     => now(),
+            'expires_at'     => $expiresAt,
+        ]);
+
+        return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+            ->with('success', 'Quiz started! Good luck.');
     }
 
     public function submitQuiz(Request $request, Module $module): RedirectResponse
@@ -214,14 +287,14 @@ class StudentPracticumController extends Controller
         $user = $request->user();
         $module->load(['quizQuestions']);
 
-        $progress = $this->findProgress($user, $module);
-        if ($progress === null) {
-            return redirect()->route('mahasiswa.content.index')
-                ->with('error', 'Start the module first.');
+        $activeAttempt = $this->findActiveQuizAttempt($user, $module);
+        if ($activeAttempt === null) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+                ->with('error', 'No active quiz attempt. Please start a new attempt.');
         }
 
         $payload = $request->validate([
-            'id_quiz' => ['required', 'integer'],
+            'id_quiz'         => ['required', 'integer'],
             'selected_option' => ['required', 'in:a,b,c,d'],
         ]);
 
@@ -230,15 +303,81 @@ class StudentPracticumController extends Controller
             return back()->with('error', 'Question not found.');
         }
 
+        $alreadyAnswered = QuizProgress::query()
+            ->where('id_attempt', $activeAttempt->id_attempt)
+            ->where('id_quiz', $question->id_quiz)
+            ->exists();
+
+        if ($alreadyAnswered) {
+            return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']).'#q'.$question->id_quiz)
+                ->with('error', 'This answer has already been submitted and cannot be changed.');
+        }
+
         $isCorrect = $payload['selected_option'] === $question->correct_option;
 
-        QuizProgress::query()->updateOrCreate(
-            ['id_user' => $user->getKey(), 'id_quiz' => $question->id_quiz],
-            ['selected_option' => $payload['selected_option'], 'is_correct' => $isCorrect]
-        );
+        QuizProgress::create([
+            'id_attempt'      => $activeAttempt->id_attempt,
+            'id_user'         => $user->getKey(),
+            'id_quiz'         => $question->id_quiz,
+            'selected_option' => $payload['selected_option'],
+            'is_correct'      => $isCorrect,
+        ]);
 
-        return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']).'#q'.$question->id_quiz)
-            ->with($isCorrect ? 'success' : 'error', $isCorrect ? 'Answer is correct!' : 'Answer is incorrect, please try again.');
+        return redirect()->to(route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']).'#q'.$question->id_quiz);
+    }
+
+    public function submitQuizAttempt(Request $request, Module $module): RedirectResponse
+    {
+        $user          = $request->user();
+
+        $activeAttempt = QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
+            ->whereNull('submitted_at')
+            ->latest('id_attempt')
+            ->first();
+
+        if ($activeAttempt === null) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz']);
+        }
+
+        $module->load('quizQuestions');
+        $quizQuestions = $module->quizQuestions->keyBy('id_quiz');
+        $answersInput = $request->input('answers', []);
+
+        foreach ($answersInput as $idQuiz => $selectedOption) {
+            $idQuiz = (int) $idQuiz;
+            if (! in_array($selectedOption, ['a', 'b', 'c', 'd'], true)) {
+                continue;
+            }
+            $question = $quizQuestions->get($idQuiz);
+            if (! $question instanceof QuizQuestion) {
+                continue;
+            }
+            $alreadyAnswered = QuizProgress::query()
+                ->where('id_attempt', $activeAttempt->id_attempt)
+                ->where('id_quiz', $idQuiz)
+                ->exists();
+
+            if ($alreadyAnswered) {
+                continue;
+            }
+
+            QuizProgress::create([
+                'id_attempt'      => $activeAttempt->id_attempt,
+                'id_user'         => $user->getKey(),
+                'id_quiz'         => $idQuiz,
+                'selected_option' => $selectedOption,
+                'is_correct'      => $selectedOption === $question->correct_option,
+            ]);
+        }
+
+        $activeAttempt->update(['submitted_at' => now()]);
+
+        return redirect()->route('mahasiswa.content.show', [
+            'module' => $module,
+            'view'   => 'quiz',
+        ])->with('success', 'Quiz submitted successfully.');
     }
 
     public function run(Request $request, Module $module, DockerService $docker): RedirectResponse
@@ -640,13 +779,21 @@ class StudentPracticumController extends Controller
             return false;
         }
 
-        $correctCount = QuizProgress::query()
+        return QuizAttempt::query()
             ->where('id_user', $user->getKey())
-            ->whereIn('id_quiz', $questionIds)
-            ->where('is_correct', true)
-            ->count();
+            ->where('id_module', $module->getKey())
+            ->whereNotNull('submitted_at')
+            ->exists();
+    }
 
-        return $correctCount >= $questionIds->count();
+    private function findActiveQuizAttempt(User $user, Module $module): ?QuizAttempt
+    {
+        return QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
+            ->whereNull('submitted_at')
+            ->latest('id_attempt')
+            ->first();
     }
 
     private function resolveRuntime(Module $module): string

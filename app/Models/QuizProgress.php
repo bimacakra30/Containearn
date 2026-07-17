@@ -12,6 +12,7 @@ class QuizProgress extends Model
     protected $primaryKey = 'id_quiz_progress';
 
     protected $fillable = [
+        'id_attempt',
         'id_user',
         'id_quiz',
         'selected_option',
@@ -21,6 +22,11 @@ class QuizProgress extends Model
     protected $casts = [
         'is_correct' => 'boolean',
     ];
+
+    public function attempt(): BelongsTo
+    {
+        return $this->belongsTo(QuizAttempt::class, 'id_attempt', 'id_attempt');
+    }
 
     public function user(): BelongsTo
     {
