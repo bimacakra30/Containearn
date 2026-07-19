@@ -465,40 +465,37 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                                 if (e.key === 'Escape') closeSubmitModal();
                             }
 
-                            @if($quizTimerMs)
-                            const timerEl = document.getElementById('quiz-timer');
-                            const expiresAt = {
-                                {
-                                    $quizTimerMs
-                                }
-                            };
+                            @if($quizTimerMs) {
+                                const timerEl = document.getElementById('quiz-timer');
+                                const expiresAt = Number("{{ $quizTimerMs }}");
 
-                            function updateTimer() {
-                                const remaining = Math.max(0, expiresAt - Date.now());
-                                const mins = String(Math.floor(remaining / 60000)).padStart(2, '0');
-                                const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
-                                timerEl.textContent = mins + ':' + secs;
+                                function updateTimer() {
+                                    const remaining = Math.max(0, expiresAt - Date.now());
+                                    const mins = String(Math.floor(remaining / 60000)).padStart(2, '0');
+                                    const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+                                    timerEl.textContent = mins + ':' + secs;
 
-                                if (remaining <= 0) {
-                                    timerEl.textContent = '00:00';
-                                    timerEl.classList.add('!text-rose-700');
-                                    const form = document.getElementById('quiz-submit-all-form');
-                                    if (form) {
-                                        form.removeAttribute('onsubmit');
-                                        form.submit();
+                                    if (remaining <= 0) {
+                                        timerEl.textContent = '00:00';
+                                        timerEl.classList.add('!text-rose-700');
+                                        const form = document.getElementById('quiz-submit-all-form');
+                                        if (form) {
+                                            form.removeAttribute('onsubmit');
+                                            form.submit();
+                                        }
+                                        return;
                                     }
-                                    return;
+
+                                    if (remaining < 60000) {
+                                        timerEl.classList.remove('text-amber-700');
+                                        timerEl.classList.add('text-rose-700');
+                                    }
+
+                                    setTimeout(updateTimer, 500);
                                 }
 
-                                if (remaining < 60000) {
-                                    timerEl.classList.remove('text-amber-700');
-                                    timerEl.classList.add('text-rose-700');
-                                }
-
-                                setTimeout(updateTimer, 500);
+                                updateTimer();
                             }
-
-                            updateTimer();
                             @endif
                         })();
                     </script>

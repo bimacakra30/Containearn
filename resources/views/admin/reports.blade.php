@@ -21,7 +21,7 @@
                             <select id="class" name="class" class="form-input py-2.5">
                                 <option value="">All classes</option>
                                 @foreach ($classOptions as $class)
-                                    <option value="{{ $class }}" @selected($selectedClass === $class)>Class {{ $class }}</option>
+                                <option value="{{ $class }}" @selected($selectedClass===$class)>Class {{ $class }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -31,9 +31,9 @@
                             <select id="course" name="course" class="form-input py-2.5">
                                 <option value="0">All contents</option>
                                 @foreach ($allCourses as $course)
-                                    <option value="{{ $course->id_course }}" @selected($selectedCourse === $course->id_course)>
-                                        {{ $course->course_title }}
-                                    </option>
+                                <option value="{{ $course->id_course }}" @selected($selectedCourse===$course->id_course)>
+                                    {{ $course->course_title }}
+                                </option>
                                 @endforeach
                             </select>
                         </div>
@@ -47,81 +47,84 @@
             </section>
 
             @forelse ($courses as $courseIndex => $course)
-                <section class="glass p-6">
-                    <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <p class="eyebrow">Content {{ $courseIndex + 1 }}</p>
-                            <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">{{ $course->course_title }}</h2>
-                        </div>
-                        <p class="text-sm text-slate-500">{{ $course->modules->count() }} module</p>
+            <section class="glass p-6">
+                <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p class="eyebrow">Content {{ $courseIndex + 1 }}</p>
+                        <h2 class="mt-3 font-display text-2xl tracking-[-0.04em] text-slate-900">{{ $course->course_title }}</h2>
+                    </div>
+                    <p class="text-sm text-slate-500">{{ $course->modules->count() }} module</p>
+                </div>
+
+                <div class="overflow-hidden rounded-[24px] border border-slate-200">
+                    <div class="grid grid-cols-[minmax(0,1fr)_140px_220px] gap-4 border-b border-slate-200 bg-slate-50/90 px-5 py-3 text-xs font-medium uppercase tracking-widest text-slate-400 max-lg:hidden">
+                        <span>Student</span>
+                        <span>Class</span>
+                        <span>Content Progress</span>
                     </div>
 
-                    <div class="overflow-hidden rounded-[24px] border border-slate-200">
-                        <div class="grid grid-cols-[minmax(0,1fr)_140px_220px] gap-4 border-b border-slate-200 bg-slate-50/90 px-5 py-3 text-xs font-medium uppercase tracking-widest text-slate-400 max-lg:hidden">
-                            <span>Student</span>
-                            <span>Class</span>
-                            <span>Content Progress</span>
+                    <div class="divide-y divide-slate-100 bg-white">
+                        @forelse ($reports as $report)
+                        @php
+                        $courseReport = $report['course']->first(fn ($item) => $item['course']->id_course === $course->id_course);
+                        $student = $report['student'];
+                        $detail = [
+                        'identity' => $student->identity_id,
+                        'name' => $student->name,
+                        'class' => $student->getAttribute('class') ? 'Class ' . $student->getAttribute('class') : '-',
+                        'course' => $course->course_title,
+                        'contentPercent' => $courseReport['percent'] ?? 0,
+                        'module' => ($courseReport['module'] ?? collect())->map(function ($moduleReport, $moduleIndex) {
+                        return [
+                        'number' => $moduleIndex + 1,
+                        'title' => $moduleReport['module']->module_title,
+                        'percent' => $moduleReport['percent'],
+                        'status' => $moduleReport['status'],
+                        'statusLabel' => match ($moduleReport['status']) {
+                        'completed' => 'Completed',
+                        'in_progress' => 'In progress',
+                        default => 'Not started',
+                        },
+                        'quiz_correct' => $moduleReport['quiz_correct'],
+                        'quiz_total' => $moduleReport['quiz_total'],
+                        'quiz_percent' => $moduleReport['quiz_percent'],
+                        'quiz_wrong_percent' => $moduleReport['quiz_wrong_percent'],
+                        'quiz' => $moduleReport['quiz_correct'] . '/' . $moduleReport['quiz_total'],
+                        'lab' => $moduleReport['lab_total'] > 0 ? $moduleReport['lab_correct'] . '/' . $moduleReport['lab_total'] : null,
+                        ];
+                        })->values(),
+                        ];
+                        @endphp
+                        <button
+                            type="button"
+                            class="grid w-full gap-4 px-5 py-4 text-left transition hover:bg-slate-50 lg:grid-cols-[minmax(0,1fr)_140px_220px] lg:items-center"
+                            x-on:click="openDetail(@js($detail))">
+                            <span class="min-w-0">
+                                <span class="block font-semibold text-slate-950">{{ $student->name }}</span>
+                                <span class="mt-1 block truncate text-sm text-slate-500">{{ $student->identity_id }}</span>
+                            </span>
+
+                            <span class="text-sm text-slate-600">{{ $student->getAttribute('class') ? 'Class ' . $student->getAttribute('class') : '-' }}</span>
+
+                            <span class="flex items-center gap-3">
+                                <span class="w-11 shrink-0 font-semibold text-slate-950">{{ $courseReport['percent'] ?? 0 }}%</span>
+                                <span class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                                    <span class="block h-full rounded-full bg-indigo-500" style="width: {{ max(0, min(100, $courseReport['percent'] ?? 0)) }}%"></span>
+                                </span>
+                            </span>
+                        </button>
+                        @empty
+                        <div class="px-5 py-10 text-center text-sm text-slate-500">
+                            No students match the selected filters.
                         </div>
-
-                        <div class="divide-y divide-slate-100 bg-white">
-                            @forelse ($reports as $report)
-                                @php
-                                    $courseReport = $report['course']->first(fn ($item) => $item['course']->id_course === $course->id_course);
-                                    $student = $report['student'];
-                                    $detail = [
-                                        'identity' => $student->identity_id,
-                                        'name' => $student->name,
-                                        'class' => $student->getAttribute('class') ? 'Class ' . $student->getAttribute('class') : '-',
-                                        'course' => $course->course_title,
-                                        'contentPercent' => $courseReport['percent'] ?? 0,
-                                        'module' => ($courseReport['module'] ?? collect())->map(function ($moduleReport, $moduleIndex) {
-                                            return [
-                                                'number' => $moduleIndex + 1,
-                                                'title' => $moduleReport['module']->module_title,
-                                                'percent' => $moduleReport['percent'],
-                                                'status' => $moduleReport['status'],
-                                                'statusLabel' => match ($moduleReport['status']) {
-                                                    'completed' => 'Completed',
-                                                    'in_progress' => 'In progress',
-                                                    default => 'Not started',
-                                                },
-                                                'quiz' => $moduleReport['quiz_correct'] . '/' . $moduleReport['quiz_total'],
-                                                'lab' => $moduleReport['lab_total'] > 0 ? $moduleReport['lab_correct'] . '/' . $moduleReport['lab_total'] : null,
-                                            ];
-                                        })->values(),
-                                    ];
-                                @endphp
-                                <button
-                                    type="button"
-                                    class="grid w-full gap-4 px-5 py-4 text-left transition hover:bg-slate-50 lg:grid-cols-[minmax(0,1fr)_140px_220px] lg:items-center"
-                                    x-on:click="openDetail(@js($detail))"
-                                >
-                                    <span class="min-w-0">
-                                        <span class="block font-semibold text-slate-950">{{ $student->name }}</span>
-                                        <span class="mt-1 block truncate text-sm text-slate-500">{{ $student->identity_id }}</span>
-                                    </span>
-
-                                    <span class="text-sm text-slate-600">{{ $student->getAttribute('class') ? 'Class ' . $student->getAttribute('class') : '-' }}</span>
-
-                                    <span class="flex items-center gap-3">
-                                        <span class="w-11 shrink-0 font-semibold text-slate-950">{{ $courseReport['percent'] ?? 0 }}%</span>
-                                        <span class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                                            <span class="block h-full rounded-full bg-indigo-500" style="width: {{ max(0, min(100, $courseReport['percent'] ?? 0)) }}%"></span>
-                                        </span>
-                                    </span>
-                                </button>
-                            @empty
-                                <div class="px-5 py-10 text-center text-sm text-slate-500">
-                                    No students match the selected filters.
-                                </div>
-                            @endforelse
-                        </div>
+                        @endforelse
                     </div>
-                </section>
+                </div>
+            </section>
             @empty
-                <section class="glass p-10 text-center text-slate-500">
-                    No contents are available to report.
-                </section>
+            <section class="glass p-10 text-center text-slate-500">
+                No contents are available to report.
+            </section>
             @endforelse
         </main>
     </div>
@@ -133,8 +136,7 @@
         class="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto px-3 py-4 sm:items-center sm:px-4 sm:py-6"
         role="dialog"
         aria-modal="true"
-        x-on:keydown.escape.window="closeDetail()"
-    >
+        x-on:keydown.escape.window="closeDetail()">
         <div class="fixed inset-0 bg-slate-950/45" x-on:click="closeDetail()" x-transition.opacity></div>
 
         <div class="relative z-10 my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xl shadow-slate-950/10 sm:max-h-[86vh]" x-transition>
@@ -152,8 +154,7 @@
                     type="button"
                     class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
                     x-on:click="closeDetail()"
-                    aria-label="Close report detail"
-                >
+                    aria-label="Close report detail">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -184,8 +185,7 @@
                                         'bg-blue-100 text-blue-700': module.status === 'in_progress',
                                         'bg-slate-100 text-slate-600': module.status !== 'completed' && module.status !== 'in_progress',
                                     }"
-                                    x-text="module.statusLabel"
-                                ></span>
+                                    x-text="module.statusLabel"></span>
                             </div>
 
                             <div class="mt-4">
@@ -197,17 +197,32 @@
                                     <div
                                         class="h-full rounded-full"
                                         :class="module.percent >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'"
-                                        :style="`width: ${Math.max(0, Math.min(100, module.percent || 0))}%`"
-                                    ></div>
+                                        :style="`width: ${Math.max(0, Math.min(100, module.percent || 0))}%`"></div>
                                 </div>
                             </div>
 
-                            <p class="mt-3 text-xs leading-5 text-slate-500">
-                                Quiz <span x-text="module.quiz"></span>
-                                <template x-if="module.lab">
-                                    <span> &middot; Lab <span x-text="module.lab"></span></span>
-                                </template>
-                            </p>
+                            <template x-if="module.quiz_total > 0">
+                                <div class="mt-4">
+                                    <div class="mb-2 flex items-center justify-between gap-3">
+                                        <p class="text-sm text-slate-500">Quiz Progress (<span x-text="module.quiz"></span>)</p>
+                                        <p class="font-semibold text-slate-950" x-text="module.quiz_percent + '%'"></p>
+                                    </div>
+                                    <div class="flex h-2 overflow-hidden rounded-full bg-slate-100">
+                                        <div
+                                            class="h-full transition-all duration-300"
+                                            :style="`width: ${module.quiz_percent}%; background-color: #10b981;`"></div>
+                                        <div
+                                            class="h-full transition-all duration-300"
+                                            :style="`width: ${module.quiz_wrong_percent}%; background-color: #f43f5e;`"></div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="module.lab">
+                                <p class="mt-3 text-xs leading-5 text-slate-500">
+                                    Lab <span x-text="module.lab"></span>
+                                </p>
+                            </template>
                         </div>
                     </template>
                 </div>
