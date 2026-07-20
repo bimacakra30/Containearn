@@ -353,8 +353,8 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                     x-transition:leave="ease-in duration-150"
                                     x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                                     x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-                                    class="glass relative z-10 max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto p-6 shadow-2xl">
-                                    <div class="mb-5 flex items-start justify-between gap-4">
+                                    class="glass relative z-10 flex max-h-[calc(100vh-3rem)] w-full max-w-3xl flex-col overflow-hidden shadow-2xl">
+                                    <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
                                         <div>
                                             <p class="eyebrow">Add Module</p>
                                             <h3 class="font-display text-xl text-slate-900">{{ $course->course_title }}</h3>
@@ -373,7 +373,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                         method="POST"
                                         action="{{ route('admin.contents.module.store', $course) }}"
                                         enctype="multipart/form-data"
-                                        class="grid gap-4 md:grid-cols-2">
+                                        class="grid min-h-0 flex-1 gap-x-6 gap-y-5 overflow-y-auto px-6 py-5 md:grid-cols-2">
                                         @csrf
                                         <input type="hidden" name="form_scope" value="module_create">
                                         <input type="hidden" name="course_context_id" value="{{ $course->id_course }}">
@@ -409,7 +409,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                         </div>
 
                                         <div>
-                                            <label class="form-label">Quiz Time Limit (Minutes) <span class="text-slate-400 font-normal">optional</span></label>
+                                            <label class="form-label">Quiz Time Limit (Minutes)</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -436,6 +436,34 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                 class="form-input">
                                             @if ($moduleCreateOpen)
                                             @error('quiz_max_attempts')
+                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                            @enderror
+                                            @endif
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Quiz Opens At <span class="text-slate-400 font-normal">optional</span></label>
+                                            <input
+                                                type="datetime-local"
+                                                name="quiz_start_at"
+                                                value="{{ $moduleCreateOpen ? old('quiz_start_at') : '' }}"
+                                                class="form-input">
+                                            @if ($moduleCreateOpen)
+                                            @error('quiz_start_at')
+                                            <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                            @enderror
+                                            @endif
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Quiz Closes At <span class="text-slate-400 font-normal">optional</span></label>
+                                            <input
+                                                type="datetime-local"
+                                                name="quiz_end_at"
+                                                value="{{ $moduleCreateOpen ? old('quiz_end_at') : '' }}"
+                                                class="form-input">
+                                            @if ($moduleCreateOpen)
+                                            @error('quiz_end_at')
                                             <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
                                             @enderror
                                             @endif
@@ -485,7 +513,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                             @endif
                                         </div>
 
-                                        <div class="md:col-span-2 flex justify-end gap-3">
+                                        <div class="sticky bottom-0 -mx-6 -mb-5 flex justify-end gap-3 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur md:col-span-2">
                                             <button
                                                 type="button"
                                                 @click="moduleCreateOpen = false"
@@ -564,6 +592,11 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                             <span class="chip bg-amber-50 text-amber-700 border-amber-100">
                                                 {{ $module->time_limit }} minutes
                                             </span>
+                                            @if ($module->quiz_start_at || $module->quiz_end_at)
+                                            <span class="chip bg-slate-50 text-slate-600 border-slate-200">
+                                                Quiz: {{ $module->quiz_start_at?->timezone('Asia/Jakarta')->format('d M Y H:i') ?? 'Anytime' }} - {{ $module->quiz_end_at?->timezone('Asia/Jakarta')->format('d M Y H:i') ?? 'No close' }}
+                                            </span>
+                                            @endif
                                         </div>
                                         <h4 class="mt-3 text-lg font-semibold text-slate-900">{{ $module->module_title }}</h4>
                                         <p class="mt-1 max-w-3xl text-sm text-slate-500">{{ $module->description }}</p>
@@ -665,7 +698,7 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                     method="POST"
                                                     action="{{ route('admin.contents.module.update', $module) }}"
                                                     enctype="multipart/form-data"
-                                                    class="grid gap-4 md:grid-cols-2">
+                                                    class="grid gap-x-6 gap-y-5 md:grid-cols-2">
                                                     @csrf
                                                     @method('PATCH')
                                                     <input type="hidden" name="form_scope" value="module_edit">
@@ -730,6 +763,34 @@ $createCourseOpen = old('form_scope') === 'course_create';
                                                             class="form-input">
                                                         @if ($moduleEditOpen)
                                                         @error('quiz_max_attempts')
+                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                        @enderror
+                                                        @endif
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Quiz Opens At <span class="text-slate-400 font-normal">optional</span></label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            name="quiz_start_at"
+                                                            value="{{ $moduleEditOpen ? old('quiz_start_at', $module->quiz_start_at?->timezone('Asia/Jakarta')->format('Y-m-d\TH:i')) : $module->quiz_start_at?->timezone('Asia/Jakarta')->format('Y-m-d\TH:i') }}"
+                                                            class="form-input">
+                                                        @if ($moduleEditOpen)
+                                                        @error('quiz_start_at')
+                                                        <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
+                                                        @enderror
+                                                        @endif
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Quiz Closes At <span class="text-slate-400 font-normal">optional</span></label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            name="quiz_end_at"
+                                                            value="{{ $moduleEditOpen ? old('quiz_end_at', $module->quiz_end_at?->timezone('Asia/Jakarta')->format('Y-m-d\TH:i')) : $module->quiz_end_at?->timezone('Asia/Jakarta')->format('Y-m-d\TH:i') }}"
+                                                            class="form-input">
+                                                        @if ($moduleEditOpen)
+                                                        @error('quiz_end_at')
                                                         <p class="mt-1 text-xs text-rose-500">{{ $message }}</p>
                                                         @enderror
                                                         @endif

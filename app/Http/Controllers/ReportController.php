@@ -88,6 +88,12 @@ class ReportController extends Controller
             ->get()
             ->groupBy('id_user');
 
+        $allQuizProgresses = QuizProgress::query()
+            ->whereIn('id_attempt', $latestAttemptIds)
+            ->whereIn('id_quiz', $quizQuestionIds)
+            ->get()
+            ->groupBy('id_user');
+
         $labProgresses = QuestionProgress::query()
             ->whereIn('id_user', $studentIds)
             ->whereIn('id_lab', $labQuestionIds)
@@ -103,19 +109,23 @@ class ReportController extends Controller
             ->groupBy('id_user')
             ->map(fn(Collection $items) => $items->keyBy('id_module'));
 
-        $reports = $students->map(function (User $student) use ($courses, $moduleProgresses, $quizProgresses, $labProgresses, $completedAttempts): array {
+        $reports = $students->map(function (User $student) use ($courses, $moduleProgresses, $quizProgresses, $allQuizProgresses, $labProgresses, $completedAttempts): array {
             $studentModuleProgresses = $moduleProgresses->get($student->getKey(), collect());
             $studentQuizProgresses = $quizProgresses->get($student->getKey(), collect())->keyBy('id_quiz');
+            $studentAllQuizProgresses = $allQuizProgresses->get($student->getKey(), collect())->keyBy('id_quiz');
             $studentLabProgresses = $labProgresses->get($student->getKey(), collect())->keyBy('id_lab');
             $studentCompletedAttempts = $completedAttempts->get($student->getKey(), collect());
 
-            $courseReports = $courses->map(function (Course $course) use ($studentModuleProgresses, $studentQuizProgresses, $studentLabProgresses, $studentCompletedAttempts): array {
-                $moduleReports = $course->modules->map(function (Module $module) use ($studentModuleProgresses, $studentQuizProgresses, $studentLabProgresses, $studentCompletedAttempts): array {
+            $courseReports = $courses->map(function (Course $course) use ($studentModuleProgresses, $studentQuizProgresses, $studentAllQuizProgresses, $studentLabProgresses, $studentCompletedAttempts): array {
+                $moduleReports = $course->modules->map(function (Module $module) use ($studentModuleProgresses, $studentQuizProgresses, $studentAllQuizProgresses, $studentLabProgresses, $studentCompletedAttempts): array {
                     $progress = $studentModuleProgresses->get($module->getKey());
                     $quizTotal = (int) $module->quiz_questions_count;
                     $labTotal = (int) $module->lab_questions_count;
                     $quizCorrect = $module->quizQuestions
                         ->filter(fn(QuizQuestion $question) => $studentQuizProgresses->has($question->id_quiz))
+                        ->count();
+                    $quizAttempted = $module->quizQuestions
+                        ->filter(fn(QuizQuestion $question) => $studentAllQuizProgresses->has($question->id_quiz))
                         ->count();
                     $labCorrect = $module->labQuestions
                         ->filter(fn(LabQuestion $question) => $studentLabProgresses->has($question->id_lab))
@@ -135,7 +145,7 @@ class ReportController extends Controller
                         'quiz_correct' => $quizCorrect,
                         'quiz_total' => $quizTotal,
                         'quiz_percent' => $quizTotal > 0 ? (int) round(($quizCorrect / $quizTotal) * 100) : 0,
-                        'quiz_wrong_percent' => $quizTotal > 0 ? (int) round((($quizTotal - $quizCorrect) / $quizTotal) * 100) : 0,
+                        'quiz_wrong_percent' => $quizTotal > 0 ? (int) round((($quizAttempted - $quizCorrect) / $quizTotal) * 100) : 0,
                         'lab_correct' => $labCorrect,
                         'lab_total' => $labTotal,
                     ];

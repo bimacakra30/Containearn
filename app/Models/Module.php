@@ -21,6 +21,13 @@ class Module extends Model
         'time_limit',
         'quiz_time_limit',
         'quiz_max_attempts',
+        'quiz_start_at',
+        'quiz_end_at',
+    ];
+
+    protected $casts = [
+        'quiz_start_at' => 'datetime',
+        'quiz_end_at' => 'datetime',
     ];
 
     public function course(): BelongsTo

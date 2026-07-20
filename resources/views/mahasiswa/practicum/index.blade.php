@@ -79,6 +79,7 @@
                                     ? (int) round((($progress->current_question_index ?? 0) / $module->questions_count) * 100)
                                     : 0)
                         ));
+                        $status = $progressPercent >= 100 && $status !== 'locked' ? 'completed' : $status;
                         $runtime = \Illuminate\Support\Str::contains(strtolower($course->docker_image), 'python')
                             ? 'Python'
                             : (\Illuminate\Support\Str::contains(strtolower($course->docker_image), 'mysql') ? 'SQL' : 'General');

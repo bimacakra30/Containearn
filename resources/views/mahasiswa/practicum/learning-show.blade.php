@@ -4,6 +4,13 @@ $validViews = ['material', 'quiz', 'lab', 'summary'];
 $activeView = in_array($activeView, $validViews, true) ? $activeView : 'material';
 $materialUrl = $module->module_pdf_path ? route('mahasiswa.module.pdf', $module) : null;
 $quizTotal = $quizQuestions->count();
+$quizWindow = $quizWindow ?? [
+'starts_label' => null,
+'ends_label' => null,
+'has_not_opened' => false,
+'has_closed' => false,
+'is_open' => true,
+];
 
 $editorLanguage = $editorLanguage ?? 'plaintext';
 $editorFilename = $editorFilename ?? 'answer.txt';
@@ -172,7 +179,7 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                     ? $activeAttempt->expires_at->getTimestampMs()
                     : null;
                     @endphp
-                    @if (! $activeAttempt && $canStartNewAttempt)
+                    @if (! $activeAttempt && ! $hasCompletedAttempt && ($attemptsLeft > 0 || $quizWindow['has_not_opened']))
                     <section class="flex min-h-[60vh] items-center justify-center py-12">
                         <div class="w-full max-w-xl text-center space-y-6">
                             <div class="rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm space-y-5">
@@ -198,6 +205,15 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                                     </div>
                                 </div>
 
+                                @if ($quizWindow['starts_label'] || $quizWindow['ends_label'])
+                                <div class="rounded-[12px] border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                    Quiz window:
+                                    <strong class="text-slate-800">{{ $quizWindow['starts_label'] ?? 'Open now' }}</strong>
+                                    -
+                                    <strong class="text-slate-800">{{ $quizWindow['ends_label'] ?? 'No close time' }}</strong>
+                                </div>
+                                @endif
+
                                 @if ($totalAttempts > 0)
                                 <div class="rounded-[12px] border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                                     Previous best: <strong class="text-slate-800">{{ $correctCount }} / {{ $quizTotal }}</strong> correct
@@ -206,13 +222,22 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
 
                                 <form method="POST" action="{{ route('mahasiswa.content.quiz.start', $module) }}">
                                     @csrf
-                                    <button type="submit" class="btn-primary w-full py-3 text-base">
-                                        Start Quiz Attempt {{ $totalAttempts + 1 }} →
+                                    <button
+                                        type="submit"
+                                        @disabled(! $canStartNewAttempt)
+                                        class="{{ $canStartNewAttempt ? 'btn-primary' : 'w-full cursor-not-allowed rounded-[14px] border border-slate-200 bg-slate-50 px-5 py-3 font-semibold text-slate-400' }} w-full py-3 text-base">
+                                        @if ($quizWindow['has_not_opened'])
+                                            Quiz opens at {{ $quizWindow['starts_label'] }}
+                                        @else
+                                            Start Quiz Attempt {{ $totalAttempts + 1 }} →
+                                        @endif
                                     </button>
                                 </form>
 
                                 @if ($module->quiz_time_limit)
                                 <p class="text-xs text-slate-400">Timer will start immediately when you click the button above.</p>
+                                @elseif ($quizWindow['ends_label'])
+                                <p class="text-xs text-slate-400">Quiz will close automatically at the scheduled end time.</p>
                                 @endif
                             </div>
                         </div>
@@ -229,6 +254,9 @@ $moduleProgress = (int) ($moduleProgress ?? $calculatedModuleProgress);
                                         Attempt <strong class="text-slate-800">{{ $totalAttempts }}</strong> of <strong class="text-slate-800">{{ $maxAttempts }}</strong>
                                         @if ($module->quiz_time_limit)
                                         &nbsp;·&nbsp; {{ $module->quiz_time_limit }} min
+                                        @endif
+                                        @if ($quizWindow['ends_label'])
+                                        &nbsp;·&nbsp; closes {{ $quizWindow['ends_label'] }}
                                         @endif
                                     </p>
                                 </div>

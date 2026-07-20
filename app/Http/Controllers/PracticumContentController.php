@@ -9,6 +9,7 @@ use App\Models\QuizQuestion;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -202,6 +203,8 @@ class PracticumContentController extends Controller
             'time_limit'         => ['required', 'integer', 'min:1', 'max:1440'],
             'quiz_time_limit'    => ['nullable', 'integer', 'min:1', 'max:300'],
             'quiz_max_attempts'  => ['required', 'integer', 'min:1', 'max:10'],
+            'quiz_start_at'      => ['nullable', 'date'],
+            'quiz_end_at'        => ['nullable', 'date', 'after:quiz_start_at'],
         ]);
 
         $payload = [
@@ -210,6 +213,8 @@ class PracticumContentController extends Controller
             'time_limit'        => $validated['time_limit'],
             'quiz_time_limit'   => $validated['quiz_time_limit'] ?? null,
             'quiz_max_attempts' => $validated['quiz_max_attempts'],
+            'quiz_start_at'     => $this->parseQuizSchedule($validated['quiz_start_at'] ?? null),
+            'quiz_end_at'       => $this->parseQuizSchedule($validated['quiz_end_at'] ?? null),
         ];
 
         if ($request->hasFile('material_pdf')) {
@@ -233,6 +238,13 @@ class PracticumContentController extends Controller
         }
 
         return $payload;
+    }
+
+    private function parseQuizSchedule(?string $value): ?Carbon
+    {
+        return filled($value)
+            ? Carbon::parse($value, 'Asia/Jakarta')->utc()
+            : null;
     }
 
     private function validateQuizQuestion(Request $request): array

@@ -53,8 +53,14 @@ class StudentPracticumController extends Controller
             ->get()
             ->keyBy('id_lab');
 
+        $submittedQuizAttempts = QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->whereNotNull('submitted_at')
+            ->pluck('id_module')
+            ->flip();
+
         $courses = $courses
-            ->map(fn (Course $c) => $this->decorateCourseModules($c, $progresses, $quizProgresses, $labProgresses))
+            ->map(fn (Course $c) => $this->decorateCourseModules($c, $progresses, $quizProgresses, $labProgresses, $submittedQuizAttempts))
             ->values();
 
         return view('mahasiswa.practicum.index', [
@@ -107,6 +113,8 @@ class StudentPracticumController extends Controller
         $activeView = in_array($activeView, $validViews, true) ? $activeView : 'material';
 
         $quizQuestions = $module->quizQuestions->values();
+        $this->submitClosedQuizWindow($user, $module, $quizQuestions->count());
+
         $activeAttempt = $this->findActiveQuizAttempt($user, $module);
         $latestAttempt = $activeAttempt ?? QuizAttempt::query()
             ->where('id_user', $user->getKey())
@@ -122,7 +130,8 @@ class StudentPracticumController extends Controller
 
         $maxAttempts    = max(1, (int) $module->quiz_max_attempts);
         $attemptsLeft   = max(0, $maxAttempts - $totalAttempts);
-        $canStartNewAttempt = $activeAttempt === null && $attemptsLeft > 0;
+        $quizWindow = $this->quizWindowState($module);
+        $canStartNewAttempt = $activeAttempt === null && $attemptsLeft > 0 && $quizWindow['is_open'];
 
         $quizProgresses = $latestAttempt
             ? QuizProgress::query()
@@ -239,17 +248,33 @@ class StudentPracticumController extends Controller
             'attemptsLeft'         => $attemptsLeft,
             'canStartNewAttempt'   => $canStartNewAttempt,
             'hasCompletedAttempt'  => $hasCompletedAttempt,
+            'quizWindow'           => $quizWindow,
         ]);
     }
 
     public function startQuizAttempt(Request $request, Module $module): RedirectResponse
     {
         $user = $request->user();
+        $module->load('quizQuestions');
 
         if ($this->findProgress($user, $module) === null) {
             return redirect()->route('mahasiswa.content.index')
                 ->with('error', 'Start the module first.');
         }
+
+        $this->submitClosedQuizWindow($user, $module, $module->quizQuestions->count());
+
+        $quizWindow = $this->quizWindowState($module);
+        if ($quizWindow['has_not_opened']) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+                ->with('error', 'Quiz is not open yet.');
+        }
+
+        if ($quizWindow['has_closed']) {
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+                ->with('error', 'Quiz window has closed.');
+        }
+
         if ($this->findActiveQuizAttempt($user, $module) !== null) {
             return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
                 ->with('error', 'You already have an active quiz attempt.');
@@ -266,9 +291,13 @@ class StudentPracticumController extends Controller
                 ->with('error', 'You have used all your quiz attempts.');
         }
 
-        $expiresAt = $module->hasQuizTimer()
+        $timerExpiresAt = $module->hasQuizTimer()
             ? now()->addMinutes($module->quiz_time_limit)
             : null;
+        $expiresAt = collect([$timerExpiresAt, $module->quiz_end_at])
+            ->filter()
+            ->sortBy(fn (Carbon $date) => $date->getTimestamp())
+            ->first();
 
         QuizAttempt::create([
             'id_user'        => $user->getKey(),
@@ -291,6 +320,13 @@ class StudentPracticumController extends Controller
         if ($activeAttempt === null) {
             return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
                 ->with('error', 'No active quiz attempt. Please start a new attempt.');
+        }
+
+        if ($this->quizWindowState($module)['has_closed']) {
+            $activeAttempt->update(['submitted_at' => now()]);
+
+            return redirect()->route('mahasiswa.content.show', ['module' => $module, 'view' => 'quiz'])
+                ->with('error', 'Quiz window has closed. Your attempt was submitted automatically.');
         }
 
         $payload = $request->validate([
@@ -786,6 +822,57 @@ class StudentPracticumController extends Controller
             ->exists();
     }
 
+    private function submitClosedQuizWindow(User $user, Module $module, int $quizTotal): void
+    {
+        if (! $this->quizWindowState($module)['has_closed'] || $quizTotal <= 0) {
+            return;
+        }
+
+        $activeAttempt = $this->findActiveQuizAttempt($user, $module);
+        if ($activeAttempt !== null) {
+            $activeAttempt->update(['submitted_at' => now()]);
+
+            return;
+        }
+
+        $hasAnyAttempt = QuizAttempt::query()
+            ->where('id_user', $user->getKey())
+            ->where('id_module', $module->getKey())
+            ->exists();
+
+        if ($hasAnyAttempt) {
+            return;
+        }
+
+        QuizAttempt::create([
+            'id_user'        => $user->getKey(),
+            'id_module'      => $module->getKey(),
+            'attempt_number' => 1,
+            'started_at'     => $module->quiz_end_at ?? now(),
+            'submitted_at'   => now(),
+            'expires_at'     => $module->quiz_end_at,
+        ]);
+    }
+
+    private function quizWindowState(Module $module): array
+    {
+        $now = now();
+        $startsAt = $module->quiz_start_at;
+        $endsAt = $module->quiz_end_at;
+        $hasNotOpened = $startsAt !== null && $now->lt($startsAt);
+        $hasClosed = $endsAt !== null && $now->gte($endsAt);
+
+        return [
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'has_not_opened' => $hasNotOpened,
+            'has_closed' => $hasClosed,
+            'is_open' => ! $hasNotOpened && ! $hasClosed,
+            'starts_label' => $startsAt?->timezone('Asia/Jakarta')->format('d M Y H:i'),
+            'ends_label' => $endsAt?->timezone('Asia/Jakarta')->format('d M Y H:i'),
+        ];
+    }
+
     private function findActiveQuizAttempt(User $user, Module $module): ?QuizAttempt
     {
         return QuizAttempt::query()
@@ -991,7 +1078,7 @@ class StudentPracticumController extends Controller
         $request->session()->forget($key);
     }
 
-    private function decorateCourseModules(Course $course, Collection $progresses, Collection $quizProgresses, Collection $labProgresses): Course
+    private function decorateCourseModules(Course $course, Collection $progresses, Collection $quizProgresses, Collection $labProgresses, Collection $submittedQuizAttempts): Course
     {
         $previousCompleted = true;
 
@@ -1000,14 +1087,14 @@ class StudentPracticumController extends Controller
             $course->modules
                 ->sortBy('id_module')
                 ->values()
-                ->map(function (Module $module) use ($progresses, $quizProgresses, &$previousCompleted) {
+                ->map(function (Module $module) use ($progresses, $quizProgresses, $submittedQuizAttempts, &$previousCompleted) {
                     $progress = $progresses->get($module->getKey());
                     $quizTotal = (int) $module->quiz_questions_count;
                     $labTotal = (int) $module->lab_questions_count;
                     $correctCount = $module->quizQuestions
                         ->filter(fn (QuizQuestion $question) => $quizProgresses->has($question->id_quiz))
                         ->count();
-                    $quizDone = $quizTotal > 0 && $correctCount >= $quizTotal;
+                    $quizDone = $quizTotal === 0 || $submittedQuizAttempts->has($module->getKey());
                     $completed = $progress?->status === 'completed' || ($progress !== null && $labTotal === 0 && $quizDone);
 
                     $status = match (true) {
